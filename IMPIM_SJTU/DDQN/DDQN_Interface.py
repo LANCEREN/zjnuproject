@@ -1,8 +1,8 @@
 from typing import Optional, List
-
+import numpy as np
 import torch
 from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer
+from pydantic import validator
 
 
 # 帖子信息模型
@@ -21,14 +21,13 @@ class PostInfo(BaseModel):
     url: str  # 帖子的 URL，指向帖子的具体网页链接
 
     relevant_user_id: str  # 若帖子是转发贴，该属性指向转发帖子的id
-    is_original: bool  # 判断该帖子是否是原创贴，true 表示原创帖子，false 表示转发贴
+    is_original: bool   #判断该帖子是否是原创贴，true 表示原创帖子，false 表示转发贴
 
     # 贴文情感特征(1.10日添加) 1表示正能量情感，-1表示负能量情感，0表示中性情感
     sentiment: int
 
-
 # 账号信息模型
-class AccountInfo(BaseModel, arbitrary_types_allowed=True):
+class AccountInfo(BaseModel):
     # Friend 类，用于表示与当前账号相关的好友
     class Friend(BaseModel):
         account_id: str  # 好友的账号 ID
@@ -40,6 +39,7 @@ class AccountInfo(BaseModel, arbitrary_types_allowed=True):
         account_id: str  # 粉丝的账号 ID
         account: str  # 粉丝的账号名
         homepage: str  # 粉丝的主页链接,如"https://weibo.com/u/1015805692"
+
 
     # UserFeature 类，经过第一组初步处理后，用于表示用户的基本特征信息
     class UserFeature(BaseModel):
@@ -73,28 +73,71 @@ class AccountInfo(BaseModel, arbitrary_types_allowed=True):
     followers: List[Follower]  # 粉丝列表，包含一个或多个 Follower 对象
     user_feature: UserFeature  # 用户特征，包含关于用户的更多详细信息，使用 UserFeature 类
 
-    # 第二组生成的属性
+    #第二组生成的属性
     influence: float  # 用户的影响力，浮动类型，通常为数值型，表示该账号在社交平台上的影响力
     # 用户静动态网络信息(1.10日添加)，由第二组写入，给第三组嵌入修正使用
     user_embeddings: torch.Tensor
 
-    # 策略处理后，判断是否是种子节点，种子节点直接设为激活
-    state: bool  # 传播过程中该用户是否被激活，false 表示未被激活，true 表示是已经被激活
+    #策略处理后，判断是否是种子节点，种子节点直接设为激活
+    state: bool      #传播过程中该用户是否被激活，false 表示未被激活，true 表示是已经被激活
 
-    retweet_probability: float  # 第三组处理的嵌入修正得到的每个节点的转发概率
-    retweet_pos_probability: float  # 第三组处理的嵌入修正得到的每个节点的正能量推文转发概率（1.10日增加）
-    retweet_neg_probability: float  # 第三组处理的嵌入修正得到的每个节点的负能量推文转发概率（1.10日增加）
+    retweet_probability: float   #第三组处理的嵌入修正得到的每个节点的转发概率
+    retweet_pos_probability: float  #第三组处理的嵌入修正得到的每个节点的正能量推文转发概率（1.10日增加）
+    retweet_neg_probability: float  #第三组处理的嵌入修正得到的每个节点的负能量推文转发概率（1.10日增加）
 
 
-# 传播的每一轮的信息模型
-class ICResult(BaseModel):
-    seed: list[int]  # 策略生成的种子节点列表
-    P_S: list[int]  # 易感状态节点的数量
-    P_I1: list[int]  # I1状态节点的累计数量
-    P_I2: list[int]  # I2状态节点的累计数量
-    P_R: list[int]  # 免疫状态节点的累计数量
-    activation_paths_info1: list[str]  # 记录I1传播的激活路径,如['1 2','32 42']代表1激活2,32激活42
-    activation_paths_info2: list[str]  # 记录I2传播的激活路径
-    step_activations_info1: list[str]  # 记录每步I1状态节点的激活信息，如['1 5 3','9 4 7 8']代表第一个时间步激活1,5,3，第二个时间步激活9,4,7,8
-    step_activations_info2: list[str]  # 记录每步I2状态节点的激活信息
 
+
+# 输入数据
+class DDQNInterface(BaseModel):
+
+    # 用户属性 UserFeature 类，经过初步处理后，用于表示用户的基本特征信息
+    class UserFeature(BaseModel):
+        account_id: str  # 账号 ID (未确定)
+        personal_desc: torch.Tensor  # 用户的个人描述信息的嵌入向量
+        followers_count: int  # 用户的粉丝数
+        friends_count: int  # 用户的好友数
+        platform: int  # 用户所在平台的标识符
+    
+    class PostFeature(BaseModel):
+        userid: str     # 发布帖子的用户 ID，唯一标识该用户
+        relevant_user_id: str    # 转发帖子的用户 ID，唯一标识该用户
+        publish_time: str  # 帖子的发布时间，通常为字符串格式的日期时间（例如 "2025-01-08"）
+
+    # 算法所需超参数
+    budget: int     # 种子节点的数目
+
+    # 算法所需输入数据
+    user_feature: List[UserFeature]     # 用户属性
+    post_feature: List[PostFeature]     # 帖子属性
+
+    # 算法将要反馈的输出数据  
+    selected_id_nodes: List[str]  # 根据GNN_DDQN算法选出来的目标用户ID（节点）列表
+
+    # 输入接口
+    def __init__(self, budget: int, account_info_list: List[AccountInfo], post_info_list: List[PostInfo]):
+
+        self.budget = budget
+        self.account_info_list = account_info_list
+        self.post_info_list = post_info_list
+
+        for index in account_info_list:
+            self.user_feature[index].account_id = account_info_list[index].account_id
+            self.user_feature[index].personal_desc = account_info_list[index].personal_desc
+            self.user_feature[index].followers_count = account_info_list[index].followers_count
+            self.user_feature[index].friends_count = account_info_list[index].friends_count
+            self.user_feature[index].platform = account_info_list[index].user_feature.platform
+
+        for index in post_info_list:
+            self.post_feature[index].userid = post_info_list[index].userid
+            self.post_feature[index].relevant_user_id = post_info_list[index].relevant_user_id
+            self.post_feature[index].publish_time = post_info_list[index].publish_time
+
+    # 输出接口
+    def output(self):
+
+        for index in self.account_info_list:
+            if self.account_info_list[index].account_id in self.selected_id_nodes:
+                self.account_info_list[index].state = True
+
+        return self.selected_id_nodes, self.account_info_list
