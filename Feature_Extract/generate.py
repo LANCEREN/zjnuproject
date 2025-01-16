@@ -57,7 +57,7 @@ if __name__ == '__main__':
     posts_info = json_content.get('posts_info', [])
     accounts_info: List[AccountInfo] = []
     for post in posts_info:
-        if post.get('userid', '') in accounts_id:
+        if post.get('userid', '') == '' or post.get('userid', '') in accounts_id:
             continue
         accounts_id.add(post.get('userid', ''))
         accounts_info.append(AccountInfo(

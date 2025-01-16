@@ -1,4 +1,6 @@
-from typing import Optional, List, Dict, Any 
+from typing import Optional, List
+
+import numpy as np
 import torch
 from pydantic import BaseModel
 
@@ -24,7 +26,8 @@ class PostInfo(BaseModel):
     # 贴文情感特征(1.10日添加) 1表示正能量情感，-1表示负能量情感，0表示中性情感
     sentiment: int
 
-# 账号信息模型 
+
+# 账号信息模型
 class AccountInfo(BaseModel, arbitrary_types_allowed=True):
     # Friend 类，用于表示与当前账号相关的好友
     class Friend(BaseModel):
@@ -64,6 +67,7 @@ class AccountInfo(BaseModel, arbitrary_types_allowed=True):
     photo: str  # 用户的头像链接，指向头像图片的 URL
     homepage: str  # 用户的主页链接
     personal_desc: str  # 用户的个人简介
+    personal_desc_tensor: np.ndarray  # 用户的个人简介的向量化表示
     birthday: str  # 用户的生日，通常为字符串格式（例如 "1994-04-10 白羊座"）
     regis_time: str  # 用户的注册时间，通常为字符串格式的日期时间（例如 "2020-06-01 10:00:00"）
     friends: List[Friend]  # 好友列表，包含一个或多个 Friend 对象
@@ -94,4 +98,3 @@ class ICResult(BaseModel):
     activation_paths_info2: List[str]  # 记录I2传播的激活路径
     step_activations_info1: List[str]  # 记录每步I1状态节点的激活信息，如['1 5 3','9 4 7 8']代表第一个时间步激活1,5,3，第二个时间步激活9,4,7,8
     step_activations_info2: List[str]  # 记录每步I2状态节点的激活信息
-
