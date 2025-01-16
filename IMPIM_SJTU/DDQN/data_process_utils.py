@@ -1,0 +1,127 @@
+# json tools
+import os, sys
+import json
+from pathlib import Path
+from DDQN_Interface import DDQNInterface
+from IMPIM_SJTU.DDQN.config import dataPath
+
+
+# Load JSON data from the file 
+def readJSONdata(file_name:str, file_directory:Path):
+    file_path = file_directory / Path(file_name)
+    with open(file_path, 'r') as file:
+        json_file_data = json.load(file)
+    return json_file_data
+
+# 预处理三所提供的JSON文件数据
+def json_preprocess_sansuo():
+
+    # Load JSON data from the file
+    file_name = 'json-1724658998077.json'
+    data = readJSONdata(file_name, dataPath.data_sansuo_directory)
+
+    # 定义递归函数来获取所有key并去重
+    def get_all_keys(data, parent_key='', seen_keys=set()):
+        keys = []
+        if isinstance(data, dict):
+            for k, v in data.items():
+                full_key = f"{parent_key}.{k}" if parent_key else k
+                if full_key not in seen_keys:
+                    keys.append(full_key)
+                    seen_keys.add(full_key)
+                keys.extend(get_all_keys(v, full_key, seen_keys))
+        elif isinstance(data, list):
+            for i, item in enumerate(data):
+                keys.extend(get_all_keys(item, parent_key, seen_keys))
+        return keys
+
+    # 提取 posts_info 中所有的key
+    posts_info = data.get('posts_info', [])
+    all_keys = get_all_keys(posts_info)
+
+    # 处理数据，将缺失的数据标记为 None
+    processed_data = []
+    for post in posts_info:
+        processed_post = {}
+        for key in all_keys:
+            # 分割多层key，逐层获取值
+            keys = key.split('.')
+            value = post
+            for k in keys:
+                if isinstance(value, dict):
+                    value = value.get(k, None)
+                else:
+                    value = None
+                    break
+            processed_post[key] = value
+        processed_data.append(processed_post)
+
+    # 打印整理后的数据
+    for post in processed_data:
+        print(json.dumps(post, ensure_ascii=False, indent=4))
+        print("-" * 40)
+
+    # 保存整理后的数据到新的JSON文件
+    output_file_path = dataPath.data_sansuo_directory + './processed_posts_info_with_missing_' + file_name
+    with open(output_file_path, 'w') as output_file:
+        json.dump(processed_data, output_file, ensure_ascii=False, indent=4)
+
+    print(f"Processed data saved to {output_file_path}")
+
+
+# 从三所提供的JSON文件数据中挑选数据
+def json_selection_process_sansuo():
+    
+    def save_txt(df_list1, df_list2, save_path):
+        if os.path.isfile(save_path):
+            os.remove(save_path)
+
+        with open(save_path, "w+") as f:
+            for i in range(len(df_list1)):
+                f.write('{:} {:}\n'.format(df_list1[i], df_list2[i]))
+            f.close()
+
+    import pandas as pd
+    # 使用pandas的read_json()方法读取JSON文件
+    file_name = Path('processed_posts_info_with_missing_json-1724658998077.json')
+    file_path = dataPath.data_sansuo_directory / file_name
+    df = pd.read_json(file_path)
+
+    # 打印DataFrame对象
+    # print(df)
+
+    # 根据不同方案的输入，选择需要提取特定列的值或者特征
+    assert len(df['userid']) == len(df['relevant_userid']), '数据丢失，请检查！'
+    userid_list = list()
+    relevant_userid_list = list()
+
+    for i in range(len(df['userid'])):
+
+        userid_list.append('None' if pd.isnull(df['userid'][i]) else int(df['userid'][i]))
+        relevant_userid_list.append('None' if pd.isnull(df['relevant_userid'][i]) else int(df['relevant_userid'][i]))
+
+    save_path = dataPath.data_sansuo_directory / Path('id_json.txt')
+    save_txt(userid_list, relevant_userid_list, save_path)
+
+
+# 预处理浙师大提供的JSON文件数据,转化为DDQNInterface类
+def json_preprocess_zjnu(budget:int, account_info_list_file_name:str, post_info_list_file_name:str):
+    from data_structure import AccountInfo
+    from data_structure import PostInfo
+
+    account_info_list_file_data = readJSONdata(account_info_list_file_name, dataPath.data_zjnu_directory)
+    post_info_list_file_data = readJSONdata(post_info_list_file_name, dataPath.data_zjnu_directory)
+
+    account_info_list = []  # 这里填入实际的 account_info_list 数据
+    post_info_list = []  # 这里填入实际的 post_info_list 数据
+    for post_info_dict in post_info_list_file_data:
+        post_info = PostInfo(**post_info_dict)
+        post_info_list.append(post_info)
+    for account_info_dict in account_info_list_file_data:
+        account_info = AccountInfo(**account_info_dict)
+        account_info_list.append(account_info)
+    
+
+    # 创建 DDQNInterface 实例
+    ddqn_interface = DDQNInterface(budget=100, account_info_list=account_info_list, post_info_list=post_info_list)
+    return ddqn_interface

@@ -12,6 +12,7 @@ class DDQNInterface(BaseModel):
     class UserFeature(BaseModel, arbitrary_types_allowed=True):
         account_id: str  # 账号 ID (未确定)
         personal_desc: torch.Tensor  # 用户的个人描述信息的嵌入向量
+        # personal_desc: str  # 用户的个人描述信息的嵌入向量
         followers_count: int  # 用户的粉丝数
         friends_count: int  # 用户的好友数
         platform: int  # 用户所在平台的标识符
@@ -33,28 +34,63 @@ class DDQNInterface(BaseModel):
 
     # 输入接口
     def __init__(self, budget: int, account_info_list: List[AccountInfo], post_info_list: List[PostInfo]):
-
+        super().__init__(budget=budget, user_feature=[], post_feature=[], selected_id_nodes=[])
         self.budget = budget
-        self.account_info_list = account_info_list
-        self.post_info_list = post_info_list
 
-        for index in account_info_list:
-            self.user_feature[index].account_id = account_info_list[index].account_id
-            self.user_feature[index].personal_desc = account_info_list[index].personal_desc
-            self.user_feature[index].followers_count = account_info_list[index].followers_count
-            self.user_feature[index].friends_count = account_info_list[index].friends_count
-            self.user_feature[index].platform = account_info_list[index].user_feature.platform
+        for account_info in account_info_list:
+            user_feature = self.UserFeature(
+                account_id=account_info.account_id,
+                personal_desc=account_info.personal_desc,# 这里没有对齐，personal_desc在UserFeature和AccountInfo中的类的定义不同，
+                                                        # 在AccountInfo类中定义的是字符串形式的personal_desc，但实际上需要的是处理后的嵌入向量和UserFeature定义对齐，
+                                                        # 这里需要在Feature_Extract.main.get_user_feature()函数中对personal_desc字段进行处理后再传入
+                followers_count=account_info.followers_count,
+                friends_count=account_info.friends_count,
+                platform=account_info.user_feature.platform  # 访问 UserFeature 子类的属性
+            )
+            self.user_feature.append(user_feature)
 
-        for index in post_info_list:
-            self.post_feature[index].userid = post_info_list[index].userid
-            self.post_feature[index].relevant_user_id = post_info_list[index].relevant_user_id
-            self.post_feature[index].publish_time = post_info_list[index].publish_time
+        for post_info in post_info_list:
+            post_feature = self.PostFeature(
+                userid=post_info.userid,
+                relevant_user_id=post_info.relevant_user_id,
+                publish_time=post_info.publish_time
+            )
+            self.post_feature.append(post_feature)
 
     # 输出接口
     def output(self):
+        for user in self.user_feature:
+            if user.account_id in self.selected_id_nodes:
+                user.state = True
 
-        for index in self.account_info_list:
-            if self.account_info_list[index].account_id in self.selected_id_nodes:
-                self.account_info_list[index].state = True
+        return self.selected_id_nodes, self.user_feature
+    
+    # def __init__(self, budget: int, account_info_list: List[AccountInfo], post_info_list: List[PostInfo]):
+    #     self.budget = budget
+    #     self.account_info_list = account_info_list
+    #     self.post_info_list = post_info_list
+    #     for index in account_info_list:
+    #         self.user_feature[index].account_id = account_info_list[index].account_id
+    #         self.user_feature[index].personal_desc = account_info_list[index].personal_desc
+    #         self.user_feature[index].followers_count = account_info_list[index].followers_count
+    #         self.user_feature[index].friends_count = account_info_list[index].friends_count
+    #         self.user_feature[index].platform = account_info_list[index].user_feature.platform
 
-        return self.selected_id_nodes, self.account_info_list
+    #     for index in post_info_list:
+    #         self.post_feature[index].userid = post_info_list[index].userid
+    #         self.post_feature[index].relevant_user_id = post_info_list[index].relevant_user_id
+    #         self.post_feature[index].publish_time = post_info_list[index].publish_time
+
+    # # 输出接口
+    # def output(self):
+
+    #     for index in self.account_info_list:
+    #         if self.account_info_list[index].account_id in self.selected_id_nodes:
+    #             self.account_info_list[index].state = True
+
+    #     return self.selected_id_nodes, self.account_info_list
+
+
+if __name__ == "__main__":
+    from IMPIM_SJTU.DDQN import train
+    train.train_IMP()

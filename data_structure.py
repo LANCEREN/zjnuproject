@@ -1,11 +1,9 @@
-from typing import Optional, List
-
+from typing import Optional, List, Dict, Any 
 import torch
 from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer
 
 
-# 帖子信息模型
+# 帖子信息模型 
 class PostInfo(BaseModel):
     topic_id: str  # 帖子的唯一标识符（ID）
     content: str  # 帖子的内容，通常为文本
@@ -26,8 +24,7 @@ class PostInfo(BaseModel):
     # 贴文情感特征(1.10日添加) 1表示正能量情感，-1表示负能量情感，0表示中性情感
     sentiment: int
 
-
-# 账号信息模型
+# 账号信息模型 
 class AccountInfo(BaseModel, arbitrary_types_allowed=True):
     # Friend 类，用于表示与当前账号相关的好友
     class Friend(BaseModel):
@@ -45,7 +42,7 @@ class AccountInfo(BaseModel, arbitrary_types_allowed=True):
     class UserFeature(BaseModel):
         account_id: str  # 用户账号 ID
         gender: int  # 用户的性别(编码数据)
-        verified: int  # 用户的认证状态(编码数据)
+        verified: Optional[int]  # 用户的认证状态(编码数据)
         ip: int  # 用户的 IP 地址(编码数据)
         contents_count: int  # 用户发布的内容数
         friends_count: int  # 用户的好友数
@@ -76,7 +73,7 @@ class AccountInfo(BaseModel, arbitrary_types_allowed=True):
     # 第二组生成的属性
     influence: float  # 用户的影响力，浮动类型，通常为数值型，表示该账号在社交平台上的影响力
     # 用户静动态网络信息(1.10日添加)，由第二组写入，给第三组嵌入修正使用
-    user_embeddings: torch.Tensor
+    user_embeddings: List[float]
 
     # 策略处理后，判断是否是种子节点，种子节点直接设为激活
     state: bool  # 传播过程中该用户是否被激活，false 表示未被激活，true 表示是已经被激活
@@ -86,15 +83,15 @@ class AccountInfo(BaseModel, arbitrary_types_allowed=True):
     retweet_neg_probability: float  # 第三组处理的嵌入修正得到的每个节点的负能量推文转发概率（1.10日增加）
 
 
-# 传播的每一轮的信息模型
+# 传播的每一轮的信息模型 
 class ICResult(BaseModel):
-    seed: list[int]  # 策略生成的种子节点列表
-    P_S: list[int]  # 易感状态节点的数量
-    P_I1: list[int]  # I1状态节点的累计数量
-    P_I2: list[int]  # I2状态节点的累计数量
-    P_R: list[int]  # 免疫状态节点的累计数量
-    activation_paths_info1: list[str]  # 记录I1传播的激活路径,如['1 2','32 42']代表1激活2,32激活42
-    activation_paths_info2: list[str]  # 记录I2传播的激活路径
-    step_activations_info1: list[str]  # 记录每步I1状态节点的激活信息，如['1 5 3','9 4 7 8']代表第一个时间步激活1,5,3，第二个时间步激活9,4,7,8
-    step_activations_info2: list[str]  # 记录每步I2状态节点的激活信息
+    seed: List[int]  # 策略生成的种子节点列表
+    P_S: List[int]  # 易感状态节点的数量
+    P_I1: List[int]  # I1状态节点的累计数量
+    P_I2: List[int]  # I2状态节点的累计数量
+    P_R: List[int]  # 免疫状态节点的累计数量
+    activation_paths_info1: List[str]  # 记录I1传播的激活路径,如['1 2','32 42']代表1激活2,32激活42
+    activation_paths_info2: List[str]  # 记录I2传播的激活路径
+    step_activations_info1: List[str]  # 记录每步I1状态节点的激活信息，如['1 5 3','9 4 7 8']代表第一个时间步激活1,5,3，第二个时间步激活9,4,7,8
+    step_activations_info2: List[str]  # 记录每步I2状态节点的激活信息
 

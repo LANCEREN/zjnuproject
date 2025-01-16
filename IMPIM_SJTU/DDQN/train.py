@@ -3,20 +3,24 @@ import torch
 import random
 import os
 import time
-import graph_utils
 import statistics
-import reward_fun 
+import json
 from multiprocessing import Pool
 from tqdm import tqdm
 from collections import namedtuple, deque
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 from torch_scatter import scatter_max
-from model import GNN_DDQN,node_embed
+from IMPIM_SJTU.DDQN.model import GNN_DDQN,node_embed
 from itertools import count
+from IMPIM_SJTU.DDQN import reward_fun 
+from IMPIM_SJTU.DDQN import graph_utils
+from IMPIM_SJTU.DDQN import data_process_utils
+from IMPIM_SJTU.DDQN.config import dataPath
+from pathlib import Path 
 
 class MyTrainer():
-    def __init__(self, device, training , T , lr , epoch, budget,data_dir):
+    def __init__(self, device, training , T , lr , epoch, budget,data_dir,output_dir):
         
         self.device = device
         self.memory_size = 50000
@@ -34,9 +38,7 @@ class MyTrainer():
         self.budget = budget
 
         # 数据加载和各种创建应该在训练器开始时就定下来
-        save_path = f'results'
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
+        save_path = output_dir
         
         #    划分训练和测试数据
         graph_path = os.path.join(data_dir,'graph.txt')
@@ -460,7 +462,6 @@ class Runner:
         last_reward = train_rewards[-1]
         return sample_size , clf_para, seeds[0]
 
-
     def test(self, num_trials , embed_file):
         ''' let agent act in the environment
             num_trials: may need multiple trials to get average
@@ -602,7 +603,8 @@ import warnings
 # 忽略特定的警告
 warnings.filterwarnings("ignore", category=UserWarning, message="This overload of nonzero is deprecated:")
 
-def main():
+def train_IMP():
+
     # 选择设备
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     # 训练模型
@@ -613,20 +615,23 @@ def main():
     lr = 0.001
     # 训练次数
     epoch = 100
-    output_dir = './data'
+    
 
     # 预算，种子节点数目
     budget = 100
     seed_set=set()
-    # 数据路径
-    graph_path = './属性数据/社交网络图结构/微博用户关注关系.csv'
-    node_feature_path = './属性数据/用户属性/user_properties.json'
 
-    # 下面是调用函数返回
-    # budget, graph_path, node_feature_path= graph_utils.process_graph_api()
+    # 数据路径
+    # graph_path = dataPath.data_zjnu_directory / Path('graph.csv')
+    # node_feature_path = dataPath.data_zjnu_directory / Path('user_properties.json')
+    output = dataPath.current_directory / Path('output')
+
+    # 下面是从外部api接口接收数据并且调用函数返回
+    ddqn_interface = data_process_utils.json_preprocess_zjnu(budget=budget, account_info_list_file_name='account_info_list.json',post_info_list_file_name='post_info_list.json')
+    budget, graph_path, node_feature_path= graph_utils.process_graph_api(ddqn_interface)
 
     # 数据预处理
-    graph_dir,sub_num = graph_utils.preprocess_graph(graph_path, output_dir, node_feature_path)
+    graph_dir,sub_num = graph_utils.preprocess_graph(graph_path, node_feature_path, dataPath.data_sjtu_directory)
     # 分配预算
     budget_per_sub = int(budget / sub_num)
     remaining_budget = budget - budget_per_sub * (sub_num - 1)
@@ -636,21 +641,21 @@ def main():
         else:
             current_budget = budget_per_sub
         # 创建训练器
-        sub_graph_dir = os.path.join(graph_dir, f'subgraph_{i}')
-        trainer = MyTrainer(device, training, T, lr, epoch, current_budget, sub_graph_dir)
+        sub_graph_dir = graph_dir / Path(f'subgraph_{i}')
+        save_path = output / Path('weights') / Path(f'subgraph_{i}')
+        os.makedirs(save_path, exist_ok=True)
+        trainer = MyTrainer(device, training, T, lr, epoch, current_budget, sub_graph_dir, save_path)
         # 开始训练，并返回结果
         sample_size, _, seeds = trainer.My_train()
         user_list = graph_utils.user_map(seeds,sub_graph_dir)
         seed_set.update(user_list)
-    seed_user_id = graph_utils.user_map(seed_set,output_dir)
-    print("Selected user_id:", seed_user_id)
+
+    seed_user_id = graph_utils.user_map(seed_set, dataPath.data_sjtu_directory)
     seed_user_id_str = [str(user_id) for user_id in seed_user_id]
-    current_dir = os.getcwd()
-    seed_user_id_path = os.path.join(current_dir, 'seed_user_id.txt')
+    seed_user_id_path = output / Path('seed_user_id.json')
     with open(seed_user_id_path, 'w') as file:
-        for user_id in seed_user_id_str:
-            file.write(f"{user_id}\n")
+        json.dump(seed_user_id_str, file)
     print(f"Seed user IDs saved to: {seed_user_id_path}")
 
 if __name__ == '__main__':
-    main() 
+    train_IMP()

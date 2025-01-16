@@ -1,6 +1,3 @@
 out/**
-results/**
-data/**
-属性数据/**
-__pycache__/**
-.idea/**
+output/**  
+data/**   
