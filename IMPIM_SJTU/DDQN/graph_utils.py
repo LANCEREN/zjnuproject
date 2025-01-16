@@ -7,11 +7,15 @@ import networkx as nx
 import community
 import os
 import json
+import csv
 from collections import deque
 import numpy as np
 from scipy.sparse import csr_matrix
 from multiprocessing import Pool
-# from DDQN_Interface import DDQNInterface
+from DDQN_Interface import DDQNInterface
+from pathlib import Path 
+from IMPIM_SJTU.DDQN.config import dataPath
+
 
 class Graph:
     def __init__(self, nodes, edges, children, parents,node_feature_path): 
@@ -152,31 +156,49 @@ def read_graph(path, node_feature_path, ind=0, directed=False):
     return Graph(nodes, edges, children, parents,node_feature_path)
 
 # 完整的数据处理代码
-def preprocess_graph(file_path =None, output_dir=None, ori_feature_path=None):
+def preprocess_graph(file_path=None, ori_feature_path=None, output_dir=None):
     # 先处理图
-    graph_path,map_path,node_feature_path = process_graph(file_path, output_dir, ori_feature_path)
+    graph_path, _, node_feature_path = process_graph(file_path, ori_feature_path, output_dir)
     # 再按照平台进行划分
-    platform_split(output_dir)
-    # 再处理划分后的图
-    platform_dirs = [d for d in os.listdir(output_dir) if os.path.isdir(os.path.join(output_dir, d)) and d.startswith('platform_')]
-    # 这里保存的t和subgraphs_dir只是针对一个平台后面补充多平台保存
-    for platform_dir in platform_dirs:
-        platform_path = os.path.join(output_dir, platform_dir)
-        platform_graph_path = os.path.join(platform_path, 'graph.txt')
-        t = 0
-        subgraphs_dir = split_graph(platform_graph_path,platform_dir)
-        for root, dirs, files in os.walk(subgraphs_dir):
-            for file in files:
-                if file.endswith('.txt') and file.startswith('subgraph'):
-                    subgraph_path = os.path.join(root, file)
-                    process_split_graph(subgraph_path, root, node_feature_path, t)
-                    t += 1
-        return subgraphs_dir,t
+    # platform_split(output_dir)
+    # # 再处理划分后的图
+    # platform_dirs = [d for d in os.listdir(output_dir) if os.path.isdir(os.path.join(output_dir, d)) and d.startswith('platform_')]
+    # # 这里保存的t和subgraphs_dir只是针对一个平台后面补充多平台保存
+    # for platform_dir in platform_dirs:
+    #     platform_path = os.path.join(output_dir, platform_dir)
+    #     platform_graph_path = os.path.join(platform_path, 'graph.txt')
+    #     t = 0
+    #     subgraphs_dir = split_graph(platform_graph_path,platform_dir)
+    #     for root, dirs, files in os.walk(subgraphs_dir):
+    #         for file in files:
+    #             if file.endswith('.txt') and file.startswith('subgraph'):
+    #                 subgraph_path = os.path.join(root, file)
+    #                 process_split_graph(subgraph_path, root, node_feature_path, t)
+    #                 t += 1
+    #     return subgraphs_dir,t
+    t = 0
+    subgraphs_dir = split_graph(graph_path, output_dir)
+    for root, dirs, files in os.walk(subgraphs_dir):
+        for file in files:
+            if file.endswith('.txt') and file.startswith('subgraph'):
+                subgraph_path = os.path.join(root, file)
+                process_split_graph(subgraph_path, root, node_feature_path, t)
+                t += 1
+    return subgraphs_dir, t
 
-def process_graph(file_path =None, output_dir=None, node_feature_path=None):
+def process_graph(file_path =None, node_feature_path=None, output_dir=None):
     # 读取图数据
     edge_list = []
     node_set = set()
+    # try:
+    #     with open(file_path, 'r') as file:
+    #         print(f"Successfully opened file: {file_path}")
+    #         for line in file:
+    #             print(line)
+    # except FileNotFoundError:
+    #     print(f"File not found: {file_path}")
+    # except Exception as e:
+    #     print(f"An error occurred while reading the file: {e}")
     with open(file_path, 'r') as file:
         for line in file:
             if ',' in line:
@@ -201,17 +223,21 @@ def process_graph(file_path =None, output_dir=None, node_feature_path=None):
     # 获取 external_features 列表的长度并打印出来
     # external_features_length = len(external_features)
     # print(f"Length of external_features: {external_features_length}")
-
-
     # 更新外部特征中的节点编号
     for feature_dict in external_features:
         old_account_id = feature_dict.get('account_id')
-        if isinstance(old_account_id, str):
-            old_account_id = int(old_account_id)
+        if isinstance(old_account_id, str) and old_account_id.strip():  # 检查 old_account_id 是否为非空字符串
+            try:
+                old_account_id = int(old_account_id)
+            except ValueError as e:
+                # print(f"Skipping invalid account_id: {old_account_id} - {e}")
+                continue  # 跳过无效的 account_id
         if old_account_id in node_mapping:
             feature_dict['account_id'] = node_mapping[old_account_id]
+
+    
     # 保存更新后的 external_features 为新的 JSON 文件
-    new_feature_path = os.path.join(output_dir, 'node_features.json')
+    new_feature_path = output_dir / Path('node_features.json')
     with open(new_feature_path, 'w') as f:
         json.dump(external_features, f, indent=4) 
     
@@ -221,7 +247,7 @@ def process_graph(file_path =None, output_dir=None, node_feature_path=None):
     elif len(parts) == 2:
         new_edge_list = [(node_mapping[node1], node_mapping[node2]) for node1, node2 in edge_list]
     # 保存新的图数据
-    new_graph_file = os.path.join(output_dir, 'graph.txt')
+    new_graph_file = output_dir / Path('graph.txt')
     with open(new_graph_file, 'w') as file:
         if len(parts) == 3:
         ### 这里应该在存储时应该保留时间戳
@@ -232,7 +258,7 @@ def process_graph(file_path =None, output_dir=None, node_feature_path=None):
                 file.write(f"{node1} {node2}\n")
 
     # 保存节点编号映射文件
-    mapping_file = os.path.join(output_dir, 'node_mapping.txt')
+    mapping_file = output_dir / Path('node_mapping.txt')
     with open(mapping_file, 'w') as file:
         for node, new_id in node_mapping.items():
             file.write(f"{node} {new_id}\n")
@@ -240,9 +266,8 @@ def process_graph(file_path =None, output_dir=None, node_feature_path=None):
 
 # 未来如果有跨平台数据可以用这个函数
 def platform_split(path):
-    graph_path = os.path.join(path, 'graph.txt')
-    node_feature_path = os.path.join(path,'node_features.json')
-
+    graph_path = path / Path('graph.txt')
+    node_feature_path = path / Path('node_features.json')
     with open(node_feature_path, 'r') as f:
         external_features = json.load(f)
     # 创建一个字典来存储每个平台的节点
@@ -297,9 +322,9 @@ def platform_split(path):
     
     # 保存分割后的图数据
     for platform, edges in platform_edges.items():
-        platform_dir = os.path.join(path, f'platform_{platform}')
+        platform_dir = path / Path(f'platform_{platform}')
         os.makedirs(platform_dir, exist_ok=True)
-        platform_graph_path = os.path.join(platform_dir, 'graph.txt')
+        platform_graph_path = platform_dir / Path('graph.txt')
         with open(platform_graph_path, 'w') as file:
             for edge in edges:
                 if len(edge) == 3:
@@ -309,7 +334,7 @@ def platform_split(path):
                     node1, node2 = edge
                     file.write(f"{node1} {node2}\n")
 
-def split_graph(graph_path,platform_dir):
+def split_graph(graph_path, dir):
     # 创建一个示例图
     G = nx.DiGraph()
     G = G.to_undirected()
@@ -329,7 +354,7 @@ def split_graph(graph_path,platform_dir):
         community_groups[community_id].append(node)
 
     # 创建每个社区的子图并保存为文件
-    output_dir = os.path.join(os.path.dirname(graph_path), 'subgraphs')
+    output_dir = dir / Path('subgraphs')
     os.makedirs(output_dir, exist_ok=True)
 
     for community_id, nodes in community_groups.items():
@@ -341,7 +366,7 @@ def split_graph(graph_path,platform_dir):
         # print('nodes:', community_id, num_nodes)
         
         # 保存子图
-        output_file_path = os.path.join(output_dir, f"subgraph_{community_id}.txt")
+        output_file_path = output_dir / Path(f"subgraph_{community_id}.txt")
         with open(output_file_path, 'w') as output_file:
             for edge in subgraph.edges():
                 output_file.write(f"{edge[0]} {edge[1]}\n")
@@ -381,10 +406,10 @@ def process_split_graph(file_path =None, output_dir=None, node_feature_path=None
         if old_account_id in node_mapping:
             feature_dict['account_id'] = node_mapping[old_account_id]
 
-    output_dir = os.path.join(output_dir,f'subgraph_{t}')
+    output_dir = output_dir / Path(f'subgraph_{t}')
     os.makedirs(output_dir,exist_ok=True)
     # 保存更新后的 external_features 为新的 JSON 文件
-    new_feature_path = os.path.join(output_dir, 'node_features.json')
+    new_feature_path = output_dir / Path('node_features.json')
     with open(new_feature_path, 'w') as f:
         json.dump(external_features, f, indent=4) 
     
@@ -394,7 +419,7 @@ def process_split_graph(file_path =None, output_dir=None, node_feature_path=None
     elif len(parts) == 2:
         new_edge_list = [(node_mapping[node1], node_mapping[node2]) for node1, node2 in edge_list]
     # 保存新的图数据
-    new_graph_file = os.path.join(output_dir, 'graph.txt')
+    new_graph_file = output_dir / Path('graph.txt')
     with open(new_graph_file, 'w') as file:
         if len(parts) == 3:
         ### 这里应该在存储时应该保留时间戳
@@ -405,14 +430,14 @@ def process_split_graph(file_path =None, output_dir=None, node_feature_path=None
                 file.write(f"{node1} {node2}\n")
 
     # 保存节点编号映射文件
-    mapping_file = os.path.join(output_dir, 'node_mapping.txt')
+    mapping_file = output_dir / Path('node_mapping.txt')
     with open(mapping_file, 'w') as file:
         for node, new_id in node_mapping.items():
             file.write(f"{node} {new_id}\n")
     return new_graph_file,mapping_file,new_feature_path
 
 def user_map(seeds_list, node_map_dir):
-    node_map_path = os.path.join(node_map_dir,'node_mapping.txt')
+    node_map_path = node_map_dir / Path('node_mapping.txt')
     original_ids = []
 
     # 读取映射表
@@ -432,39 +457,37 @@ def user_map(seeds_list, node_map_dir):
     return original_ids   
 
 
-def process_graph_api():     
-    # relevant_user_id
-
-    # 创建 DDQNInterface 实例
-    account_info_list = []  # 这里填入实际的 account_info_list 数据
-    post_info_list = []  # 这里填入实际的 post_info_list 数据
-    ddqn_interface = DDQNInterface(budget=100, account_info_list=account_info_list, post_info_list=post_info_list)
-
+def process_graph_api(ddqn_interface:DDQNInterface):     
     # 使用 DDQNInterface 类中的 budget
-    budget = ddqn_interface.budget
-    # 获取当前程序运行所在文件夹
-    current_dir = os.getcwd()
+    budget = ddqn_interface.budget 
 
     # 将用户特征保存为 JSON 文件
     user_features = []
     for user in ddqn_interface.user_feature:
         user_dict = {
             'account_id': user.account_id,
-            'personal_desc': user.personal_desc.tolist(),  # 将 Tensor 转换为列表
+            # 'personal_desc': user.personal_desc.tolist(),  # 将 Tensor 转换为列表
+            'personal_desc': user.personal_desc,  # 将 Tensor 转换为列表
             'followers_count': user.followers_count,
             'friends_count': user.friends_count,
             'platform': user.platform
         }
         user_features.append(user_dict)
+    
+    graph_path = dataPath.data_zjnu_directory / Path('graph.csv')
+    node_feature_path = dataPath.data_zjnu_directory / Path('user_properties.json')
 
-    user_features_path = os.path.join(current_dir, 'user_features.json')
-    with open(user_features_path, 'w') as json_file:
+    with open(node_feature_path, 'w') as json_file:
         json.dump(user_features, json_file, indent=4)
 
-    # 将帖子属性保存为 TXT 文件
-    post_features_path = os.path.join(current_dir, 'post_features.txt')
-    with open(post_features_path, 'w') as txt_file:
+    # 将关联关系构成的图保存为 csv 文件
+    with open(graph_path, 'w', newline='') as csv_file:
+        csv_writer = csv.writer(csv_file, delimiter=',')
         for post in ddqn_interface.post_feature:
-            txt_file.write(f"{post.userid}\t{post.relevant_user_id}\t{post.publish_time}\n")
-
-    return budget, user_features_path, post_features_path
+            # print(post.userid, post.relevant_user_id)
+            if post.userid and post.relevant_user_id:  # 检查 userid 和 relevant_user_id 是否为空
+                try:
+                    csv_writer.writerow([int(post.userid), int(post.relevant_user_id), post.publish_time])
+                except ValueError as e:
+                    print(f"Skipping invalid data: {post.userid}, {post.relevant_user_id}, {post.publish_time} - {e}")
+    return budget, graph_path, node_feature_path

@@ -1,5 +1,2 @@
 out/**
-data/**
-.idea/**
-
-__pycache__/**
+data/** 
