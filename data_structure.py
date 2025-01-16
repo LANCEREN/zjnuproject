@@ -73,7 +73,7 @@ class AccountInfo(BaseModel, arbitrary_types_allowed=True):
     # 第二组生成的属性
     influence: float  # 用户的影响力，浮动类型，通常为数值型，表示该账号在社交平台上的影响力
     # 用户静动态网络信息(1.10日添加)，由第二组写入，给第三组嵌入修正使用
-    user_embeddings: List[float]
+    user_embeddings: torch.Tensor
 
     # 策略处理后，判断是否是种子节点，种子节点直接设为激活
     state: bool  # 传播过程中该用户是否被激活，false 表示未被激活，true 表示是已经被激活
