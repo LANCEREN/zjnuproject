@@ -38,6 +38,9 @@ if __name__ == "__main__":
     # selected_id_nodes: List[str] 传播策略算法根据GNN_DDQN算法选出来的目标用户ID（节点）列表
     # 修改account_info_list当中AccountInfo对象的state属性
     # selected_id_nodes, account_info_list = DDQNInterface(budget=10, account_info_list=account_info_list,post_info_list=post_info_list).output()
+    # 打开并读取种子节点存放的JSON文件
+    with open('seed_user_id.json', 'r') as file:
+        selected_id_nodes = json.load(file)
     # 第三组
     # flag:int 1表示正能量增强传播模型结果，2表示负能量抑制传播模型结果，3表示正负能量竞争传播模型结果
     ic_result_list = simulation(selected_id_nodes,account_info_list,post_info_list,flag=1)
