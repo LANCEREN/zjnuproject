@@ -1,4 +1,5 @@
 from typing import Optional, List, Dict, Any 
+import numpy as np
 import torch
 from pydantic import BaseModel
 
@@ -64,6 +65,7 @@ class AccountInfo(BaseModel, arbitrary_types_allowed=True):
     photo: str  # 用户的头像链接，指向头像图片的 URL
     homepage: str  # 用户的主页链接
     personal_desc: str  # 用户的个人简介
+    personal_desc_tensor: np.ndarray  # 用户的个人简介的向量化表示
     birthday: str  # 用户的生日，通常为字符串格式（例如 "1994-04-10 白羊座"）
     regis_time: str  # 用户的注册时间，通常为字符串格式的日期时间（例如 "2020-06-01 10:00:00"）
     friends: List[Friend]  # 好友列表，包含一个或多个 Friend 对象
@@ -73,7 +75,7 @@ class AccountInfo(BaseModel, arbitrary_types_allowed=True):
     # 第二组生成的属性
     influence: float  # 用户的影响力，浮动类型，通常为数值型，表示该账号在社交平台上的影响力
     # 用户静动态网络信息(1.10日添加)，由第二组写入，给第三组嵌入修正使用
-    user_embeddings: List[float]
+    user_embeddings: torch.Tensor
 
     # 策略处理后，判断是否是种子节点，种子节点直接设为激活
     state: bool  # 传播过程中该用户是否被激活，false 表示未被激活，true 表示是已经被激活
