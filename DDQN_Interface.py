@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Dict, Any 
 import numpy as np
 import torch
 from pydantic import BaseModel 
@@ -11,11 +11,12 @@ class DDQNInterface(BaseModel):
     # 用户属性 UserFeature 类，经过初步处理后，用于表示用户的基本特征信息
     class UserFeature(BaseModel, arbitrary_types_allowed=True):
         account_id: str  # 账号 ID (未确定)
-        personal_desc: torch.Tensor  # 用户的个人描述信息的嵌入向量
+        personal_desc_tensor: np.ndarray  # 用户的个人描述信息的嵌入向量
         # personal_desc: str  # 用户的个人描述信息的嵌入向量
         followers_count: int  # 用户的粉丝数
         friends_count: int  # 用户的好友数
         platform: int  # 用户所在平台的标识符
+        state: bool # 传播过程中该用户是否被激活，false 表示未被激活，true 表示是已经被激活
 
     class PostFeature(BaseModel):
         userid: str  # 发布帖子的用户 ID，唯一标识该用户
@@ -31,20 +32,24 @@ class DDQNInterface(BaseModel):
 
     # 算法将要反馈的输出数据  
     selected_id_nodes: List[str]  # 根据GNN_DDQN算法选出来的目标用户ID（节点）列表
+    #算法映射字典
+    user_map_dict: Dict[str, str] = {}
+    user_dict_reverse: Dict[str, str] = {}
 
     # 输入接口
-    def __init__(self, budget: int, account_info_list: List[AccountInfo], post_info_list: List[PostInfo]):
+    def __init__(self, budget: int, account_info_list: List[AccountInfo], post_info_list: List[PostInfo], user_map_dict: dict = None, user_dict_reverse: dict = None):
         super().__init__(budget=budget, user_feature=[], post_feature=[], selected_id_nodes=[])
+        self.user_map_dict = user_map_dict if user_map_dict is not None else {}
+        self.user_dict_reverse = user_dict_reverse if user_dict_reverse is not None else {}
         self.budget = budget
 
         for account_info in account_info_list:
             user_feature = self.UserFeature(
                 account_id=account_info.account_id,
-                personal_desc=account_info.personal_desc,# 这里没有对齐，personal_desc在UserFeature和AccountInfo中的类的定义不同，
-                                                        # 在AccountInfo类中定义的是字符串形式的personal_desc，但实际上需要的是处理后的嵌入向量和UserFeature定义对齐，
-                                                        # 这里需要在Feature_Extract.main.get_user_feature()函数中对personal_desc字段进行处理后再传入
+                personal_desc_tensor=account_info.personal_desc_tensor,
                 followers_count=account_info.followers_count,
                 friends_count=account_info.friends_count,
+                state = account_info.state,
                 platform=account_info.user_feature.platform  # 访问 UserFeature 子类的属性
             )
             self.user_feature.append(user_feature)

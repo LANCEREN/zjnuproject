@@ -616,14 +616,11 @@ def train_IMP():
     # 训练次数
     epoch = 100
     
-
     # 预算，种子节点数目
     budget = 100
     seed_set=set()
 
-    # 数据路径
-    # graph_path = dataPath.data_zjnu_directory / Path('graph.csv')
-    # node_feature_path = dataPath.data_zjnu_directory / Path('user_properties.json')
+    # 数据结果输出路径
     output = dataPath.current_directory / Path('output')
 
     # 下面是从外部api接口接收数据并且调用函数返回
@@ -632,26 +629,37 @@ def train_IMP():
 
     # 数据预处理
     graph_dir,sub_num = graph_utils.preprocess_graph(graph_path, node_feature_path, dataPath.data_sjtu_directory)
-    # 分配预算
-    budget_per_sub = int(budget / sub_num)
-    remaining_budget = budget - budget_per_sub * (sub_num - 1)
-    for i in range(sub_num):
-        if i == sub_num - 1:
-            current_budget = remaining_budget
-        else:
-            current_budget = budget_per_sub
+
+    if sub_num == 1:
         # 创建训练器
-        sub_graph_dir = graph_dir / Path(f'subgraph_{i}')
-        save_path = output / Path('weights') / Path(f'subgraph_{i}')
+        save_path = output / Path('weights')
         os.makedirs(save_path, exist_ok=True)
-        trainer = MyTrainer(device, training, T, lr, epoch, current_budget, sub_graph_dir, save_path)
+        trainer = MyTrainer(device, training, T, lr, epoch, budget, graph_dir, save_path)
         # 开始训练，并返回结果
         sample_size, _, seeds = trainer.My_train()
-        user_list = graph_utils.user_map(seeds,sub_graph_dir)
+        user_list = graph_utils.user_map(seeds,graph_dir)
         seed_set.update(user_list)
+    else:
+        # 分配预算
+        budget_per_sub = int(budget / sub_num)
+        remaining_budget = budget - budget_per_sub * (sub_num - 1)
+        for i in range(sub_num):
+            if i == sub_num - 1:
+                current_budget = remaining_budget
+            else:
+                current_budget = budget_per_sub
+            # 创建训练器
+            sub_graph_dir = graph_dir / Path(f'subgraph_{i}')
+            save_path = output / Path('weights') / Path(f'subgraph_{i}')
+            os.makedirs(save_path, exist_ok=True)
+            trainer = MyTrainer(device, training, T, lr, epoch, current_budget, sub_graph_dir, save_path)
+            # 开始训练，并返回结果
+            sample_size, _, seeds = trainer.My_train()
+            user_list = graph_utils.user_map(seeds,sub_graph_dir)
+            seed_set.update(user_list)
 
     seed_user_id = graph_utils.user_map(seed_set, dataPath.data_sjtu_directory)
-    seed_user_id_str = [str(user_id) for user_id in seed_user_id]
+    seed_user_id_str = [ddqn_interface.user_dict_reverse[str(user_id)] for user_id in seed_user_id]
     seed_user_id_path = output / Path('seed_user_id.json')
     with open(seed_user_id_path, 'w') as file:
         json.dump(seed_user_id_str, file)

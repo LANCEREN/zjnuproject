@@ -1,7 +1,9 @@
 # json tools
 import os, sys
 import json
+import torch
 from pathlib import Path
+from typing import Optional, List, Dict, Any 
 from DDQN_Interface import DDQNInterface
 from IMPIM_SJTU.DDQN.config import dataPath
 
@@ -114,14 +116,45 @@ def json_preprocess_zjnu(budget:int, account_info_list_file_name:str, post_info_
 
     account_info_list = []  # 这里填入实际的 account_info_list 数据
     post_info_list = []  # 这里填入实际的 post_info_list 数据
-    for post_info_dict in post_info_list_file_data:
-        post_info = PostInfo(**post_info_dict)
-        post_info_list.append(post_info)
+
+    # FIXME: zjnu 数据更新后可删除此行
+    # 创建一个空字典来存储用户及其对应的编号
+    user_dict = {}
+    user_dict_reverse = {}
+    current_id = 0
+
     for account_info_dict in account_info_list_file_data:
+        # FIXME: zjnu 数据更新后可删除此行
+        # 在这个函数里面加
+        import numpy as np
+        array = np.random.rand(1, 20)
+        account_info_dict['personal_desc_tensor'] = array
+        # 遍历用户列表，将每个不重复的用户添加到字典中, str -> str(int)
+        user_account_id = account_info_dict['account_id']
+        if user_account_id not in user_dict:
+            user_dict[user_account_id] = str(current_id)
+            user_dict_reverse[str(current_id)] = user_account_id
+            current_id += 1
+        account_info_dict['account_id'] = user_dict[user_account_id]
+        # user_embeddings输入格式不对,将 user_embeddings 列表转换为张量
+        if 'user_embeddings' in account_info_dict:
+            account_info_dict['user_embeddings'] = torch.tensor(account_info_dict['user_embeddings'])
+
         account_info = AccountInfo(**account_info_dict)
         account_info_list.append(account_info)
+
+    for post_info_dict in post_info_list_file_data:
+        # FIXME: 由于三所数据不完整，需要手动调整 id
+        import random
+        random_keys = random.sample(list(user_dict.keys()), 2)
+        post_info_dict['userid'] = user_dict[random_keys[0]]
+        post_info_dict['relevant_user_id'] = user_dict[random_keys[1]]
+
+        post_info = PostInfo(**post_info_dict)
+        post_info_list.append(post_info)
     
 
     # 创建 DDQNInterface 实例
-    ddqn_interface = DDQNInterface(budget=100, account_info_list=account_info_list, post_info_list=post_info_list)
+    ddqn_interface = DDQNInterface(budget=100, account_info_list=account_info_list, post_info_list=post_info_list, 
+                                    user_map_dict=user_dict, user_dict_reverse=user_dict_reverse)
     return ddqn_interface

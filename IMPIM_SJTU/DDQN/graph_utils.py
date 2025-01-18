@@ -8,8 +8,9 @@ import community
 import os
 import json
 import csv
-from collections import deque
 import numpy as np
+from collections import deque
+from typing import Optional, List, Dict, Any 
 from scipy.sparse import csr_matrix
 from multiprocessing import Pool
 from DDQN_Interface import DDQNInterface
@@ -30,9 +31,15 @@ class Graph:
             self.children[node] = sorted(self.children[node])
         for node in self.parents:
             self.parents[node] = sorted(self.parents[node])
-        # 读取外部输入的特征
-        with open(node_feature_path, 'r') as f:
-            external_features = json.load(f)
+        
+        if node_feature_path:
+            # 读取外部输入的特征
+            with open(node_feature_path, 'r') as f:
+                external_features = json.load(f)
+        else:
+            # 调用 get_node_features 函数获取节点特征
+            self.get_node_features()
+            return
 
         # 创建一个字典来存储外部特征，键为 account_id
         external_features_dict = {feature_dict['account_id']: feature_dict for feature_dict in external_features}
@@ -69,6 +76,14 @@ class Graph:
 
             # 将所有特征合并
             self.G.nodes[node]['features'] = features
+    
+    def get_node_features(self):
+        pagerank = nx.pagerank(self.G)
+        for node in self.G.nodes():
+            out_degree = self.G.out_degree(node)
+            in_degree = self.G.in_degree(node)
+            importance = pagerank[node]
+            self.G.nodes[node]['features'] = [out_degree, in_degree, importance]
 
     def num_nodes(self):
         return len(self.nodes)
@@ -184,6 +199,8 @@ def preprocess_graph(file_path=None, ori_feature_path=None, output_dir=None):
                 subgraph_path = os.path.join(root, file)
                 process_split_graph(subgraph_path, root, node_feature_path, t)
                 t += 1
+    if t == 0:
+        return output_dir, 1
     return subgraphs_dir, t
 
 def process_graph(file_path =None, node_feature_path=None, output_dir=None):
@@ -451,43 +468,54 @@ def user_map(seeds_list, node_map_dir):
     for seed in seeds_list:
         if seed in mapping:
             original_ids.append(mapping[seed])
-        else:
-            print(f"Warning: Seed {seed} not found in mapping")
+        # else:
+        #     print(f"Warning: Seed {seed} not found in mapping")
     # print(original_ids)
     return original_ids   
 
-
-def process_graph_api(ddqn_interface:DDQNInterface):     
+# 将接口输入转换成算法输入的函数
+def process_graph_api(ddqn_interface:DDQNInterface,dataset_name='sansuo'):     
     # 使用 DDQNInterface 类中的 budget
     budget = ddqn_interface.budget 
 
     # 将用户特征保存为 JSON 文件
     user_features = []
+    post_features = []
     for user in ddqn_interface.user_feature:
         user_dict = {
             'account_id': user.account_id,
-            # 'personal_desc': user.personal_desc.tolist(),  # 将 Tensor 转换为列表
-            'personal_desc': user.personal_desc,  # 将 Tensor 转换为列表
+            'personal_desc_tensor': user.personal_desc_tensor.tolist(),  # 将数组转换为列表
             'followers_count': user.followers_count,
             'friends_count': user.friends_count,
             'platform': user.platform
         }
         user_features.append(user_dict)
+    for post in ddqn_interface.post_feature:
+        post_dict = {
+            'userid': post.userid,
+            'relevant_user_id': post.relevant_user_id,
+            'publish_time': post.publish_time
+        }
+        post_features.append(post_dict)
+
+    if dataset_name == 'sansuo':
+        graph_path = dataPath.data_zjnu_directory / Path('temp_graph.csv')
+        node_feature_path = dataPath.data_zjnu_directory / Path('temp_properties.json')
+
+        with open(node_feature_path, 'w') as json_file:
+            json.dump(user_features, json_file, indent=4)
+
+        # 将关联关系构成的图保存为 csv 文件
+        with open(graph_path, 'w', newline='') as csv_file:
+            csv_writer = csv.writer(csv_file, delimiter=',')
+            for post in post_features:
+                if post['userid'] and post['relevant_user_id']:  # 检查 userid 和 relevant_user_id 是否为空
+                    try:
+                        csv_writer.writerow([int(post['userid']), int(post['relevant_user_id'])])
+                    except ValueError as e:
+                        print(f"Skipping invalid data: {post['userid']}, {post['relevant_user_id']} - {e}")
     
-    graph_path = dataPath.data_zjnu_directory / Path('graph.csv')
-    node_feature_path = dataPath.data_zjnu_directory / Path('user_properties.json')
-
-    with open(node_feature_path, 'w') as json_file:
-        json.dump(user_features, json_file, indent=4)
-
-    # 将关联关系构成的图保存为 csv 文件
-    with open(graph_path, 'w', newline='') as csv_file:
-        csv_writer = csv.writer(csv_file, delimiter=',')
-        for post in ddqn_interface.post_feature:
-            # print(post.userid, post.relevant_user_id)
-            if post.userid and post.relevant_user_id:  # 检查 userid 和 relevant_user_id 是否为空
-                try:
-                    csv_writer.writerow([int(post.userid), int(post.relevant_user_id), post.publish_time])
-                except ValueError as e:
-                    print(f"Skipping invalid data: {post.userid}, {post.relevant_user_id}, {post.publish_time} - {e}")
+    elif dataset_name =='meiya':
+        graph_path = dataPath.data_zjnu_directory / Path('graph.csv')
+        node_feature_path = dataPath.data_zjnu_directory / Path('user_properties.json')
     return budget, graph_path, node_feature_path
