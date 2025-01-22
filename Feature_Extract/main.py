@@ -2,13 +2,16 @@ import json
 from json import JSONDecodeError
 from typing import List
 
+import numpy as np
 import torch
 from sklearn.preprocessing import LabelEncoder
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoModel
 
 from Feature_Extract.enums import Platform
 from Feature_Extract.utils import FeatureClusterSelector
 from data_structure import AccountInfo, PostInfo
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def _read_json_file(file_path):
@@ -28,6 +31,8 @@ def _read_user_data(data_path: str, platform: Platform) -> List[AccountInfo]:
         accounts_info = json_content.get('users_info', [])
         res: List[AccountInfo] = []
         for account in accounts_info:
+            if account.get('account_id', '') == '':
+                continue
             res.append(AccountInfo(
                 account_id=account.get('account_id', ''),
                 account=account.get('account', ''),
@@ -53,6 +58,7 @@ def _read_user_data(data_path: str, platform: Platform) -> List[AccountInfo]:
                 photo=account.get('photo', ''),
                 homepage=account.get('homepage', ''),
                 personal_desc=account.get('personal_desc', ''),
+                personal_desc_tensor=np.array([]),
                 birthday=account.get('birthday', ''),
                 regis_time=account.get('regis_time', ''),
                 friends=[AccountInfo.Friend(
@@ -89,6 +95,13 @@ def _get_user_feature(data: List[AccountInfo]) -> List[AccountInfo]:
             d.user_feature.gender = gender_values.transform([d.gender])[0]
             d.user_feature.ip = ip_values.transform([d.ip])[0]
             d.user_feature.verified = verified_values.transform([d.verified])[0]
+    # 个人简介向量化
+    _text_model = AutoModel.from_pretrained("jinaai/jina-embeddings-v3", trust_remote_code=True)
+    _text_model = _text_model.to(device)
+    personal_desc_list = [d.personal_desc for d in data]
+    personal_desc_tensor = _text_model.encode(personal_desc_list, task='text-matching')
+    for d in data:
+        d.personal_desc_tensor = personal_desc_tensor[data.index(d)]
     return data
 
 
@@ -113,8 +126,8 @@ def _read_post_data(data_path: str, platform: Platform) -> List[PostInfo]:
                 nickname=post.get('nickname', ''),
                 userid=post.get('userid', ''),
                 url=post.get('url', ''),
-                relevant_user_id='',
-                is_original=False,
+                relevant_user_id=post.get('relevant_userid', ''),
+                is_original=post.get('relevant_userid', '') != '',
                 sentiment=0,
             ))
         return res
@@ -124,7 +137,6 @@ def _read_post_data(data_path: str, platform: Platform) -> List[PostInfo]:
 
 
 def _get_post_feature(data: List[PostInfo], batch_size: int) -> List[PostInfo]:
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model_name = "tabularisai/multilingual-sentiment-analysis"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSequenceClassification.from_pretrained(model_name)

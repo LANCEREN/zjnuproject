@@ -1,5 +1,7 @@
+import warnings
 from typing import List
 
+warnings.filterwarnings("ignore")
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -73,13 +75,15 @@ class FeatureClusterSelector:
             else:
                 raise ValueError("Failed to infer column names. Data format is unexpected.")
 
-        # 如果列中的值是 tuple，提取 tuple 的第二个元素
-        self.season_stats_full = self.season_stats_full.applymap(lambda x: x[1] if isinstance(x, tuple) else x)
+        # # 如果列中的值是 tuple，提取 tuple 的第二个元素
+        # self.season_stats_full = self.season_stats_full.applymap(lambda x: x[1] if isinstance(x, tuple) else x)
+        self.season_stats_full = self.season_stats_full.apply(
+            lambda col: col.apply(lambda x: x[1] if isinstance(x, tuple) else x))
 
-        # 打印前几行用于检查
-        print(self.season_stats_full.head())
-        print(f"Total number of rows in the dataset: {self.season_stats_full.shape[0]}")
-        print(f"Total number of columns in the dataset: {self.season_stats_full.shape[1]}")
+        # # 打印前几行用于检查
+        # print(self.season_stats_full.head())
+        # print(f"Total number of rows in the dataset: {self.season_stats_full.shape[0]}")
+        # print(f"Total number of columns in the dataset: {self.season_stats_full.shape[1]}")
 
         # 确保 sample_size 不超过总行数
         self.sample_size = min(self.season_stats_full.shape[0], self.sample_size)
@@ -88,8 +92,8 @@ class FeatureClusterSelector:
         self.season_stats_sample = self.season_stats_full.head(self.sample_size)
         self.season_stats_rest = self.season_stats_full.iloc[self.sample_size:].copy()
 
-        print(f"Sample size (used for clustering and feature selection): {self.season_stats_sample.shape[0]}")
-        print(f"Remaining data size: {self.season_stats_rest.shape[0]}")
+        # print(f"Sample size (used for clustering and feature selection): {self.season_stats_sample.shape[0]}")
+        # print(f"Remaining data size: {self.season_stats_rest.shape[0]}")
 
     def preprocess_data(self):
         """选择数值型的列、排除不需要的列、分离零方差列、标准化数据以及清理数据。"""
@@ -138,17 +142,17 @@ class FeatureClusterSelector:
         initial_shape = self.variable_numeric_stats_sample.shape
         self.variable_numeric_stats_sample.dropna(inplace=True)
         final_shape = self.variable_numeric_stats_sample.shape
-        if initial_shape != final_shape:
-            print(f"Deleted {initial_shape[0] - final_shape[0]} rows due to NaN values after conversion.")
+        # if initial_shape != final_shape:
+        # print(f"Deleted {initial_shape[0] - final_shape[0]} rows due to NaN values after conversion.")
 
         # 9. 数据标准化
         self.norm_variable_numeric_stats_sample = (
                                                           self.variable_numeric_stats_sample - self.variable_numeric_stats_sample.mean()) / self.variable_numeric_stats_sample.std()
-        print("Data has been standardized (mean=0, std=1).")
+        # print("Data has been standardized (mean=0, std=1).")
 
         # 10. 清理数据（虽然已经删除了 NaN 和零方差列，但这里保留以防）
         self.norm_variable_numeric_stats_sample = self.clean_dataset(self.norm_variable_numeric_stats_sample)
-        print(f"Sample data size after cleaning: {self.norm_variable_numeric_stats_sample.shape}")
+        # print(f"Sample data size after cleaning: {self.norm_variable_numeric_stats_sample.shape}")
 
     @staticmethod
     def clean_dataset(df):
@@ -166,20 +170,20 @@ class FeatureClusterSelector:
         initial_shape = df.shape
         df.dropna(inplace=True)
         final_shape = df.shape
-        print(f"Cleaned data: dropped {initial_shape[0] - final_shape[0]} rows containing NaN or infinite values.")
+        # print(f"Cleaned data: dropped {initial_shape[0] - final_shape[0]} rows containing NaN or infinite values.")
         return df.astype(np.float64)
 
     def compute_correlation_matrix(self):
         """计算样本数据的相关矩阵。"""
         self.corr_matrix_sample = self.norm_variable_numeric_stats_sample.corr()
-        print("相关矩阵（样本数据）：")
-        print(self.corr_matrix_sample)
+        # print("相关矩阵（样本数据）：")
+        # print(self.corr_matrix_sample)
 
         # 检查相关矩阵是否包含 NaN
-        if self.corr_matrix_sample.isnull().values.any():
-            print("警告：相关矩阵包含 NaN 值。请检查数据预处理步骤。")
-        else:
-            print("相关矩阵已成功计算，不包含 NaN 值。")
+        # if self.corr_matrix_sample.isnull().values.any():
+        #     print("警告：相关矩阵包含 NaN 值。请检查数据预处理步骤。")
+        # else:
+        #     print("相关矩阵已成功计算，不包含 NaN 值。")
 
     @staticmethod
     def get_color(val, color_threshold):
@@ -205,12 +209,12 @@ class FeatureClusterSelector:
                                color=self.get_color(abs(val), self.color_threshold))
 
         # 打印索引
-        for i, colname in enumerate(columns):
-            if (i + 1) % 5 == 0:
-                print(f"{i} : {colname}")
-            else:
-                print(f"{i}: {colname}", end=", ")
-        print()  # 换行
+        # for i, colname in enumerate(columns):
+        #     if (i + 1) % 5 == 0:
+        #         print(f"{i} : {colname}")
+        #     else:
+        #         print(f"{i}: {colname}", end=", ")
+        # print()  # 换行
 
         pos = nx.kamada_kawai_layout(G)
 
@@ -273,7 +277,7 @@ class FeatureClusterSelector:
         # 设置聚类数
         self.n_clusters = n_clusters
 
-        print(f"确定的聚类数: {self.n_clusters}")
+        # print(f"确定的聚类数: {self.n_clusters}")
         return self.n_clusters
 
     def perform_spectral_clustering(self):
@@ -291,13 +295,13 @@ class FeatureClusterSelector:
         # 执行谱聚类
         sc = SpectralClustering(n_clusters=self.n_clusters, affinity='precomputed', n_init=100, random_state=42)
         self.clusters = sc.fit_predict(adj_sample_thresholded)
-        print("聚类结果 (Clusters):")
-        for c in np.unique(self.clusters):
-            cols = self.norm_variable_numeric_stats_sample.columns[np.where(self.clusters == c)]
-            print(f"Cluster {c}:")
-            print(f"Number of features: {cols.size}")
-            print(cols.tolist())
-            print("---")
+        # print("聚类结果 (Clusters):")
+        # for c in np.unique(self.clusters):
+        #     cols = self.norm_variable_numeric_stats_sample.columns[np.where(self.clusters == c)]
+        #     print(f"Cluster {c}:")
+        #     print(f"Number of features: {cols.size}")
+        #     print(cols.tolist())
+        #     print("---")
 
     @staticmethod
     def calculate_feature_importance(cluster_data):
@@ -363,22 +367,22 @@ class FeatureClusterSelector:
         for cluster_id in np.unique(self.clusters):
             cluster_indices = np.where(self.clusters == cluster_id)[0]
             cluster_data = self.variable_numeric_stats_sample.iloc[:, cluster_indices]
-            print(f"Cluster {cluster_id}")
+            # print(f"Cluster {cluster_id}")
             feature_importance = self.calculate_feature_importance(cluster_data)
             feature_importance = feature_importance.sort_values(ascending=False)
-            print("Feature Importance:")
-            print(feature_importance)
-            print(f"Number of features in cluster: {len(feature_importance)}")
+            # print("Feature Importance:")
+            # print(feature_importance)
+            # print(f"Number of features in cluster: {len(feature_importance)}")
             # 获取最重要的特征
             if not feature_importance.empty:
                 most_important_feature = feature_importance.idxmax()
                 self.most_important_features[cluster_id] = most_important_feature
-                print(f"Most important feature: {most_important_feature}")
-            print("---")
+            #     print(f"Most important feature: {most_important_feature}")
+            # print("---")
 
-        print("Most important features by cluster:")
-        for cluster_id, feature in self.most_important_features.items():
-            print(f"Cluster {cluster_id}: {feature}")
+        # print("Most important features by cluster:")
+        # for cluster_id, feature in self.most_important_features.items():
+        #     # print(f"Cluster {cluster_id}: {feature}")
 
     def apply_feature_selection(self):
         """仅保留每个聚类的最重要特征，删除其余特征，并应用到整个数据集。"""
@@ -394,7 +398,7 @@ class FeatureClusterSelector:
             self.features_to_keep = [feature for feature in self.features_to_keep if
                                      feature in self.variable_numeric_stats_sample.columns]
 
-        print("Final Features to keep after removing missing features:", self.features_to_keep)
+        # print("Final Features to keep after removing missing features:", self.features_to_keep)
 
         # 创建一个仅包含最重要特征的简化数据集
         # 1. 保留所有非数值型的列
