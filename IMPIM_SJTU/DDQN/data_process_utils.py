@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any 
 from DDQN_Interface import DDQNInterface
 from IMPIM_SJTU.DDQN.config import dataPath
-
+from IMPIM_SJTU.DDQN.model import FinetuningGAT
 
 # Load JSON data from the file 
 def readJSONdata(file_name:str, file_directory:Path):
@@ -122,6 +122,7 @@ def json_preprocess_zjnu(budget:int, account_info_list_file_name:str, post_info_
     user_dict = {}
     user_dict_reverse = {}
     current_id = 0
+    
 
     for account_info_dict in account_info_list_file_data:
         # FIXME: zjnu 数据更新后可删除此行
@@ -152,9 +153,14 @@ def json_preprocess_zjnu(budget:int, account_info_list_file_name:str, post_info_
 
         post_info = PostInfo(**post_info_dict)
         post_info_list.append(post_info)
-    
-
+    # 更新转发概率，但由于浙师大提供的是原始数据，因此没有办法更新，建议把第三组第一个人的输出添加的文件中去
+    # account_info_list = get_node_pro(account_info_list, post_info_list)
     # 创建 DDQNInterface 实例
     ddqn_interface = DDQNInterface(budget=100, account_info_list=account_info_list, post_info_list=post_info_list, 
                                     user_map_dict=user_dict, user_dict_reverse=user_dict_reverse)
     return ddqn_interface
+
+def get_node_pro(account_info_list, post_info_list):
+    finetuningGAT = FinetuningGAT()
+    accounts = finetuningGAT.update_retweet_prob(account_info_list, post_info_list)
+    return accounts

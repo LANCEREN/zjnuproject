@@ -1,6 +1,56 @@
 import random
 from collections import deque
 
+
+def cp_pos(graph, S, R):        
+    seed_nodes = set(S)
+    inf = 0
+    for _ in range(R):
+        seed_nodes_set = seed_nodes.copy()
+        queue = deque(seed_nodes_set)
+        while True:
+            curr_source_set = set()
+            while len(queue) != 0:
+                curr_node = queue.popleft()
+                for child in graph.get_children(curr_node):
+                    if not(child in seed_nodes_set) and random.random() <= graph.get_node_pro(child):
+                    # if not(child in seed_nodes_set) and random.random() <= graph.edges[(curr_node, child)]:
+                        curr_source_set.add(child)
+            if len(curr_source_set) == 0:
+                break
+            queue.extend(curr_source_set)
+            seed_nodes_set |= curr_source_set
+        inf += len(seed_nodes_set)
+
+    # G = cls.build_user_network2(account_info_list)
+
+    # for node in G:
+    #     G.nodes[node]['state'] = 0
+
+    # seed_nodes = selected_id_nodes
+    # for seed in seed_nodes:
+    #     G.nodes[seed]['state'] = 1
+
+    
+    # start_influence_nodes = seed_nodes[:]
+    # count_activated = len(seed_nodes)
+    # activated_count = [count_activated]
+
+
+    # for i in range(max_iter_num):
+    #     for v in start_influence_nodes:
+    #         for nbr in G.neighbors(v):
+    #             if G.nodes[nbr]['state'] == 0:
+    #                 if random.uniform(0, 1) < G.nodes[nbr]['w']:
+    #                     G.nodes[nbr]['state'] = 1
+                        
+    #                     count_activated += 1
+            
+    #                 else:
+    #                     G.nodes[nbr]['state'] = 2
+    #     activated_count.append(count_activated)
+    return inf / R
+
 def computeMC(graph, S, R):
     ''' compute expected influence using MC under IC
         R: number of trials

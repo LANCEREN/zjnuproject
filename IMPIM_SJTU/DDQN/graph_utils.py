@@ -38,7 +38,7 @@ class Graph:
                 external_features = json.load(f)
         else:
             # 调用 get_node_features 函数获取节点特征
-            self.get_node_features()
+            self.get_node_feature()
             return
 
         # 创建一个字典来存储外部特征，键为 account_id
@@ -60,7 +60,10 @@ class Graph:
                 followers_count = feature_dict.get('followers_count', 0)
                 friends_count = feature_dict.get('friends_count', 0)
                 personal_desc = feature_dict.get('personal_desc', [])
-                
+                zhuanfa_pro = feature_dict.get('zhuanfa_pro', random.uniform(0.1, 0.8))  # 使用随机数作为默认值
+                # 如果 zhuanfa_pro 为 0，则使用随机数
+                if zhuanfa_pro == 0:
+                    zhuanfa_pro = random.uniform(0.1, 0.8)
                 # 添加特征到特征列表
                 features.append(followers_count)
                 features.append(friends_count)
@@ -73,11 +76,16 @@ class Graph:
                 # 如果没有外部特征，则生成同维度的全零特征
                 features.extend([0, 0])
                 features.extend([0] * max_personal_desc_length)
-
+            
             # 将所有特征合并
             self.G.nodes[node]['features'] = features
+            self.G.nodes[node]['pro'] = zhuanfa_pro
     
-    def get_node_features(self):
+    def get_node_pro(self,node):
+        node_pro = self.G.nodes[node]['pro']    
+        return node_pro
+
+    def get_node_feature(self):
         pagerank = nx.pagerank(self.G)
         for node in self.G.nodes():
             out_degree = self.G.out_degree(node)

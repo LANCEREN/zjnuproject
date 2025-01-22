@@ -17,6 +17,7 @@ class DDQNInterface(BaseModel):
         friends_count: int  # 用户的好友数
         platform: int  # 用户所在平台的标识符
         state: bool # 传播过程中该用户是否被激活，false 表示未被激活，true 表示是已经被激活
+        zhuanfa_pro: float # 转发概率
 
     class PostFeature(BaseModel):
         userid: str  # 发布帖子的用户 ID，唯一标识该用户
@@ -50,7 +51,8 @@ class DDQNInterface(BaseModel):
                 followers_count=account_info.followers_count,
                 friends_count=account_info.friends_count,
                 state = account_info.state,
-                platform=account_info.user_feature.platform  # 访问 UserFeature 子类的属性
+                platform=account_info.user_feature.platform,  # 访问 UserFeature 子类的属性
+                zhuanfa_pro = account_info.retweet_pos_probability
             )
             self.user_feature.append(user_feature)
 
@@ -61,7 +63,7 @@ class DDQNInterface(BaseModel):
                 publish_time=post_info.publish_time
             )
             self.post_feature.append(post_feature)
-
+# 
     # 输出接口
     def output(self):
         for user in self.user_feature:
@@ -99,3 +101,4 @@ class DDQNInterface(BaseModel):
 if __name__ == "__main__":
     from IMPIM_SJTU.DDQN import train
     train.train_IMP()
+    print("The ddqn works.")
