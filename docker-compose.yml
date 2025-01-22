@@ -1,0 +1,72 @@
+services:
+  sjtu_algorithm_ddqn:
+    build:
+      context: .
+      dockerfile: IMPIM_SJTU/DDQN/Dockerfile
+    container_name: sjtu_algorithm_ddqn
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all       # 所有 GPU 对容器可见
+      - NVIDIA_DRIVER_CAPABILITIES=all   # 启用所有 NVIDIA 驱动功能 
+    volumes:
+      - ./IMPIM_SJTU/DDQN:/app/IMPIM_SJTU/DDQN      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
+      - ./data_structure.py:/app/data_structure.py
+      - ./DDQN_Interface.py:/app/DDQN_Interface.py
+      - ./zjnu_main.py:/app/zjnu_main.py  
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]  # 指定需要 GPU
+              count: 1             # 至少需要一块 GPU
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    command: /bin/bash  # 运行 nvidia-smi 命令 
+    profiles:
+      - development
+
+  zjnu_algorithm_FE:    # zjnu开发容器配置举例（需自己修改本文件和子算法中的dockerfile文件）
+    build:
+      context: .
+      dockerfile: Feature_Extract/Dockerfile
+    container_name: zjnu_algorithm_FE
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - ./Feature_Extract:/app/Feature_Extract      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
+      - ./data_structure.py:/app/data_structure.py
+      - ./DDQN_Interface.py:/app/DDQN_Interface.py
+      - ./zjnu_main.py:/app/zjnu_main.py  
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]  # 指定需要 GPU
+              count: 1             # 至少需要一块 GPU
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    command: /bin/bash  # 运行 nvidia-smi 命令 
+    networks:
+      - algo_net
+    profiles:
+      - development
+
+  api_gateway:                         # API 网关服务
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - sjtu_algorithm_ddqn
+      - zjnu_algorithm_FE
+    networks:
+      - algo_net
+    profiles:
+      - production
+
+networks:
+  algo_net:                           # 自定义网络确保服务互通
+    driver: bridge
+
+volumes:
+  shared_data:                        # 共享数据卷（可选）
