@@ -1,7 +1,3 @@
-
-
-222
-
 # 深度学习服务项目
 
 ## 项目概述
@@ -299,7 +295,7 @@ git push origin master
 
 如有任何问题或建议，请通过以下方式联系我们：
 
-- 邮箱：example@example.com
+- 邮箱：lanceren@example.com
 
 ## 许可证
 
