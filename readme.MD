@@ -44,8 +44,8 @@
 
 ## 环境要求
 
-- Docker: 20.10.x 或更高版本
-- Docker Compose: 1.29.x 或更高版本
+- Docker: 20.10.x 或更高版本，SJTU采用27.5.0
+- Docker Compose: 1.29.x 或更高版本，SJTU采用2.32.4
 
 ## 构建运行
 
@@ -274,15 +274,7 @@ services:
 3. 创建或切换到新的分支 (`git checkout -b feature/YourFeatureName`)
 4. 提交更改 (`git commit -am 'Add some feature'`)
 5. 推送到自己的子分支 (`git push origin feature/YourFeatureName`)
-6. 在确保主分支为最新的情况下合并主分支 (`git merge master`)
-7. **解决冲突**（如果有）：如果在合并过程中发生冲突，Git会暂停合并，并提示你手动解决冲突。你可以使用文本编辑器打开包含冲突的文件，手动解决冲突部分，然后保存文件。解决完所有冲突后，使用git add命令将解决后的文件标记为已解决，最后使用git commit命令提交合并结果。例如：
-```bash
-git status  # 查看冲突文件列表
-# 手动编辑冲突文件，解决冲突
-git add <冲突文件>  # 标记冲突文件为已解决
-git commit -m "解决冲突并合并主分支代码"  # 提交合并结果
-```
-8. 切换到主分支，然后将其他分支的版本合并到主分支并推送到远程仓库
+6. 切换到主分支，然后在确保主分支为最新的情况下将其他分支的版本合并到主分支并推送到远程仓库
 ```bash
 git checkout master
 git pull origin master
@@ -290,6 +282,16 @@ git pull origin master
 git merge --no-ff -m "fix bugs." feature/YourFeatureName
 git push origin master
 ```
+7. **解决冲突**（如果有）：如果在合并过程中发生冲突，Git会暂停合并，并提示你手动解决冲突。你可以使用文本编辑器打开包含冲突的文件，手动解决冲突部分，然后保存文件。解决完所有冲突后，使用git add命令将解决后的文件标记为已解决，最后使用git commit命令提交合并结果。例如：
+```bash
+git status  # 查看冲突文件列表
+# 手动编辑冲突文件，解决冲突
+git add <冲突文件>  # 标记冲突文件为已解决
+git commit -m "解决冲突并合并主分支代码"  # 提交合并结果
+```
+如对git操作缺乏基础，可以参考学习以下链接：
+[Git教程](https://liaoxuefeng.com/books/git/branch/policy/index.html)
+![示例](https://liaoxuefeng.com/books/git/branch/policy/branches.png)
 
 ## 联系我们
 
