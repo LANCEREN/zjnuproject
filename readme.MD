@@ -48,8 +48,8 @@
 
 ## 环境要求
 
-- Docker: 20.10.x 或更高版本
-- Docker Compose: 1.29.x 或更高版本
+- Docker: 20.10.x 或更高版本，SJTU采用27.5.0
+- Docker Compose: 1.29.x 或更高版本，SJTU采用2.32.4
 
 ## 构建运行
 
