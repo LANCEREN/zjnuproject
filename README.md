@@ -7,37 +7,49 @@
 ## 项目结构
 
 ```
-├── Analog_Propagation
-│   ├── data
-│   ├── Finetuning_GAT
-│   │   ├── data
-│   │   │   └── test
-│   │   └── output
-│   └── output
-├── Feature_Extract
-│   ├── data
-│   ├── enums
-│   ├── out
-│   └── utils
-├── Influence_Prediction
-│   ├── GAT
-│   └── LINE
-├── IMPIM_SJTU                  # 包含各个子算法的目录
+
+├── docker-compose.yml                    # Docker Compose 文件，用于管理多个服务
+├── __init__.py
+├── LICENSE
+├── __main__.py                           # 本项目的程序入口
+├── pyproject.toml                        # 项目代码规范文件
+├── README.md                             # 项目说明文件
+├── src                                   # 所有源代码文件 包含各个子算法
+│   ├── Orchestrator                      # 调度程序模块
+│   │   ├── dockerfile
+│   │   ├── main.py                       # 容器化调度主函数入口（未实现）
+│   │   └── zjnu_main.py                  # 旧的主函数入口,本阶段用于过渡
+│   ├── SJTU                              # SJTU 复杂开发的算法
+│   │   ├── DDQN                          # DDQN 模块
+│   │   ├── __init__.py
+│   │   └── Interface.py                  # 通信接口类
+│   └── ZJNU                              # ZJNU 复杂开发的算法
+│       ├── requirements.txt              
+│       ├── data_structure.py             # 通信接口类
+│       ├── Analog_Propagation            # 子算法1
+│       ├── Feature_Extract               # 子算法2
+│       ├── Influence_Prediction          # 子算法3
+│       └── __init__.py
+└── tests                                 # 开发测试模块
+    ├── conftest.py                       # 测试配置文件
+    ├── __init__.py
+    └── test_ddqn.py                      # ddqn算法测试文件
+
+算法模块内
+
+├── SJTU                        # 包含各个子算法的目录
 │   └── DDQN                    # 子算法1
-│       ├── data
+│       ├── data                # 数据存放
 │       │   ├── data_sansuo
 │       │   ├── data_sjtu
 │       │   │   └── subgraphs
 │       │   └── data_zjnu
-│       ├── output
+│       ├── output              # 输出存放
 │       │   └── weights
 │       ├── dockerfile          # 子算法1的 Dockerfile
 │       └── requirements.txt    # 子算法1的 Python 依赖列表
-├── data_structure.py
-├── DDQN_Interface.py
-├── docker-compose.yml          # Docker Compose 文件，用于管理多个服务
-├── readme.MD                   # 项目说明文件
-└── zjnu_main.py
+...
+
 ```
 
 
@@ -48,15 +60,33 @@
 
 ## 构建运行
 
-### 1. 克隆项目
+### 克隆项目
 
 ```bash
 git clone https://git.code.tencent.com/zr197662012/zjnuproject.git
 cd zjnuproject
 ```
 
+### 方案一：使用本地conda环境运行
+#### 1. 安装conda
+#### 2. 创建conda环境并激活conda环境
+#### 3. 根据requirements.txt安装相关依赖
+#### 4. 在终端或IDE中运行脚本
 
-### 2. 构建docker镜像
+   ```bash
+   在根目录 zjnuproject/ 下运行
+   python __main__.py
+   ```
+或
+
+   ```bash
+   在根目录 zjnuproject/ 的上级目录下运行
+   python -m zjnuproject
+   ```
+
+### 方案二：构建docker镜像运行
+
+#### 1. 构建docker镜像
 
 方法一：**docker build指令构建各个子算法镜像**
 
@@ -76,7 +106,7 @@ docker build -t zjnu_algorithm_FE -f ZJNU/Feature_Extract/Dockerfile .
 
    注：该命令应在主目录下执行，这将根据 `docker-compose.yml` 文件中的配置，索引到子算法的`Dockerfile`文件去构建子算法docker服务。
 
-### 3. 使用 Docker Compose 启动服务
+#### 2. 使用 Docker Compose 启动服务
 
 ```bash
 docker-compose up -d
@@ -84,31 +114,37 @@ docker-compose up -d
 
 这将根据 `docker-compose.yml` 文件中的配置，启动所有子算法服务。
 
-### 4. 访问服务
+#### 3. 访问服务
 
 根据 `docker-compose.yml` 中的配置，通过docke相关指令访问各个子算法docker容器服务。
 
 ## 详细说明
 
-### 1. IMPIM_SJTU/DDQN/**
+### 1. Orchestrator
+
+*由于本项目是一个集成了多个不同深度学习算法的框架，各个算法之间存在不可调和的环境依赖冲突，这为开发与部署带来了显著的复杂性。为了降低开发难度并提升系统的可维护性与扩展性，建议将各个子算法封装为若干个独立的 Docker 容器。通过容器化技术，可以有效隔离不同算法的运行环境，避免依赖冲突，同时提高资源利用率与部署灵活性。此外，可以利用 Redis 数据库作为中间件，在 Orchestrator 中创建一个主调度程序容器，替代原有的 `zjnu_main.py` 的串联式主函数功能。该主调度程序能够灵活地协调和调度各个子算法容器，并通过 Redis 实现高效的通信与数据共享，从而构建一个松耦合、高内聚的分布式系统架构。这种设计不仅简化了复杂环境下的开发流程，还为未来算法的扩展与优化提供了更加便捷的技术支持。*
+
+**（2025.2.8）Orchestrator仍未开发完毕，目前还需要通过__main__.py函数作为入口调用原有的 `zjnu_main.py` 的串联式主函数作为过渡。**
+
+### 2. SJTU/DDQN/**
 
 各单位的各个算法应当以此架构统一组织
 
-- **IMPIM_SJTU** 文件夹：以项目标识+单位缩写命名的文件夹，其中包含该单位开发的各个子算法文件夹。
+- **SJTU** 文件夹：以项目单位缩写命名的文件夹，其中包含该单位开发的各个子算法文件夹。
 - **DDQN** 文件夹：以算法缩写命名的文件夹，其中包含DDQN算法的代码和 Dockerfile, requirements.txt。
 
-### 2. requirements.txt
+### 3. requirements.txt
 
 每个子算法文件夹应当根据自己的依赖环境列出所需依赖包和版本号
 **并确保可以用类似下发的指令安装无冲突**
 ```bash
-pip3 install --no-cache-dir -r ./IMPIM_SJTU/DDQN/requirements.txt
+pip3 install --no-cache-dir -r ./SJTU/DDQN/requirements.txt
 ```
 
-### 3. Dockerfile
+### 4. Dockerfile
 每个子算法文件夹应当根据自己的依赖环境构筑自己的dockerfile
-- **IMPIM_SJTU/DDQN/Dockerfile**: 用于构建子算法1的镜像，并安装子算法1的特定依赖。
-- **ZJNU/Feature_Extract/Dockerfile**: 用于构建子算法2的镜像，并安装子算法2的特定依赖。
+- **src/SJTU/DDQN/Dockerfile**: 用于构建子算法1的镜像，并安装子算法1的特定依赖。
+- **src/ZJNU/Feature_Extract/Dockerfile**: 用于构建子算法2的镜像，并安装子算法2的特定依赖。
 
 ```dockerfile
 # 使用官方 Python 镜像
@@ -118,17 +154,25 @@ FROM nvidia/cuda:11.0.3-cudnn8-runtime-ubuntu20.04 AS builder
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
+    # python3-dev \
+    # git \
+    # build-essential \
+    # cmake \
     git \
     && rm -rf /var/lib/apt/lists/*
+
+# 验证 Python 是否可用
+RUN which python3
+RUN python3 --version
 
 # 设置工作目录
 WORKDIR /app
 
 # 复制依赖文件
-COPY IMPIM_SJTU/DDQN/requirements.txt ./IMPIM_SJTU/DDQN/requirements.txt
+COPY src/SJTU/DDQN/requirements.txt ./src/SJTU/DDQN/requirements.txt
 
 # 安装依赖
-RUN pip3 install --no-cache-dir -r ./IMPIM_SJTU/DDQN/requirements.txt
+RUN pip3 install --no-cache-dir -r ./src/SJTU/DDQN/requirements.txt
 # 安装 PyTorch 和 torchvision
 RUN pip3 install torch==1.7.1+cu110 torchvision==0.8.2+cu110 -f https://download.pytorch.org/whl/torch_stable.html
 # 安装 PyTorch 相关库
@@ -146,36 +190,36 @@ COPY --from=builder /usr/lib/ /usr/lib/
 COPY --from=builder /usr/include/ /usr/include/
 COPY --from=builder /usr/local /usr/local/
 
+# 验证 Python 是否可用
+RUN which python3
+RUN python3 --version
+
 # 复制应用代码
-COPY IMPIM_SJTU/DDQN/ ./IMPIM_SJTU/DDQN/
-COPY data_structure.py ./data_structure.py
-COPY DDQN_Interface.py ./DDQN_Interface.py
-COPY zjnu_main.py ./zjnu_main.py  
+COPY src/ ./src/
+COPY __main__.py ./__main__.py  
 
 # 设置默认命令
-CMD ["python3", "DDQN_Interface.py"]
+# CMD ["python3", "DDQN_Interface.py"]
+CMD ["/bin/bash"]
 ```
 
-### 4. docker-compose.yml
+### 5. docker-compose.yml
 
 `docker-compose.yml` 文件只有一个并且位于最顶层文件夹，用于根据各个子算法文件夹中的`dockerfile`文件定义和运行多个 Docker 容器。每个子算法作为一个独立的服务运行。
 
 ```yaml
-version: '3'
 services:
   sjtu_algorithm_ddqn:
     build:
       context: .
-      dockerfile: IMPIM_SJTU/DDQN/Dockerfile
+      dockerfile: src/SJTU/DDQN/Dockerfile
     container_name: sjtu_algorithm_ddqn
     environment:
       - NVIDIA_VISIBLE_DEVICES=all       # 所有 GPU 对容器可见
       - NVIDIA_DRIVER_CAPABILITIES=all   # 启用所有 NVIDIA 驱动功能 
     volumes:
-      - ./IMPIM_SJTU/DDQN:/app/IMPIM_SJTU/DDQN      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
-      - ./data_structure.py:/app/data_structure.py
-      - ./DDQN_Interface.py:/app/DDQN_Interface.py
-      - ./zjnu_main.py:/app/zjnu_main.py  
+      - ./src:/app/src      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
+      - ./__main__.py:/app/__main__.py  
     deploy:
       resources:
         reservations:
@@ -191,15 +235,14 @@ services:
   zjnu_algorithm_FE:    # zjnu开发容器配置举例（需自己修改本文件和子算法中的dockerfile文件）
     build:
       context: .
-      dockerfile: Feature_Extract/Dockerfile
+      dockerfile: src/ZJNU/Feature_Extract/Dockerfile
     container_name: zjnu_algorithm_FE
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all   # 启用所有 NVIDIA 驱动功能 
     volumes:
-      - ./Feature_Extract:/app/Feature_Extract      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
-      - ./data_structure.py:/app/data_structure.py
-      - ./DDQN_Interface.py:/app/DDQN_Interface.py
-      - ./zjnu_main.py:/app/zjnu_main.py  
+      - ./src:/app/src      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
+      - ./__main__.py:/app/__main__.py  
     deploy:
       resources:
         reservations:
@@ -216,16 +259,18 @@ services:
 
 ```
 
-
-
 ## 开发指南
 
+### 子算法管理
+
 1. **添加新子算法服务**：
-   - 在各自单位的目录（如交大是`IMPIM_SJTU`）目录下创建新的子算法目录（如 `DDQN`）。
+   - 在各自单位的目录（如交大是`SJTU`）目录下创建新的子算法目录（如 `DDQN`）。
    - 在新目录中添加 `Dockerfile` 和 `requirements.txt` 文件，配置服务依赖。
    - 更新 `docker-compose.yml` 文件，添加新服务的配置。
 
-2. **修改现有服务**：
+### Docker容器管理
+
+1. **修改现有服务**：
    - 进入相应服务目录，修改 `Dockerfile` 或 `requirements.txt` 文件。
    - 返回 `docker-compose.yml` 文件所在目录
    - 重新构建镜像并启动服务：
@@ -234,6 +279,10 @@ services:
      docker-compose build <service_name>
      docker-compose up -d <service_name>
      ```
+
+### 代码风格管理
+
+  - 可安装 black flake isort 统一代码风格
 
 ### 数据管理
 

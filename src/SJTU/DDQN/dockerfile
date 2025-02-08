@@ -20,10 +20,10 @@ RUN python3 --version
 WORKDIR /app
 
 # 复制依赖文件
-COPY IMPIM_SJTU/DDQN/requirements.txt ./IMPIM_SJTU/DDQN/requirements.txt
+COPY src/SJTU/DDQN/requirements.txt ./src/SJTU/DDQN/requirements.txt
 
 # 安装依赖
-RUN pip3 install --no-cache-dir -r ./IMPIM_SJTU/DDQN/requirements.txt
+RUN pip3 install --no-cache-dir -r ./src/SJTU/DDQN/requirements.txt
 # 安装 PyTorch 和 torchvision
 RUN pip3 install torch==1.7.1+cu110 torchvision==0.8.2+cu110 -f https://download.pytorch.org/whl/torch_stable.html
 # 安装 PyTorch 相关库
@@ -46,11 +46,8 @@ RUN which python3
 RUN python3 --version
 
 # 复制应用代码
-COPY IMPIM_SJTU/DDQN/ ./IMPIM_SJTU/DDQN/
-COPY Analog_Propagation/ ./Analog_Propagation/
-COPY data_structure.py ./data_structure.py
-COPY DDQN_Interface.py ./DDQN_Interface.py
-COPY zjnu_main.py ./zjnu_main.py  
+COPY src/ ./src/
+COPY __main__.py ./__main__.py  
 
 # 设置默认命令
 # CMD ["python3", "DDQN_Interface.py"]
