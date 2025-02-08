@@ -2,16 +2,14 @@ services:
   sjtu_algorithm_ddqn:
     build:
       context: .
-      dockerfile: IMPIM_SJTU/DDQN/Dockerfile
+      dockerfile: src/SJTU/DDQN/Dockerfile
     container_name: sjtu_algorithm_ddqn
     environment:
       - NVIDIA_VISIBLE_DEVICES=all       # 所有 GPU 对容器可见
       - NVIDIA_DRIVER_CAPABILITIES=all   # 启用所有 NVIDIA 驱动功能 
     volumes:
-      - ./IMPIM_SJTU/DDQN:/app/IMPIM_SJTU/DDQN      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
-      - ./data_structure.py:/app/data_structure.py
-      - ./DDQN_Interface.py:/app/DDQN_Interface.py
-      - ./zjnu_main.py:/app/zjnu_main.py  
+      - ./src:/app/src      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
+      - ./__main__.py:/app/__main__.py  
     deploy:
       resources:
         reservations:
@@ -27,15 +25,14 @@ services:
   zjnu_algorithm_FE:    # zjnu开发容器配置举例（需自己修改本文件和子算法中的dockerfile文件）
     build:
       context: .
-      dockerfile: Feature_Extract/Dockerfile
+      dockerfile: src/ZJNU/Feature_Extract/Dockerfile
     container_name: zjnu_algorithm_FE
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all   # 启用所有 NVIDIA 驱动功能 
     volumes:
-      - ./Feature_Extract:/app/Feature_Extract      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
-      - ./data_structure.py:/app/data_structure.py
-      - ./DDQN_Interface.py:/app/DDQN_Interface.py
-      - ./zjnu_main.py:/app/zjnu_main.py  
+      - ./src:/app/src      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
+      - ./__main__.py:/app/__main__.py  
     deploy:
       resources:
         reservations:
