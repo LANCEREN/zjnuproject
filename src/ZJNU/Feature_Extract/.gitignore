@@ -1,4 +1,4 @@
 /out/**/*
-!/out/.gitkeep
+!/out/**/.gitkeep
 /data/**/*
-!/data/.gitkeep
+!/data/**/.gitkeep
