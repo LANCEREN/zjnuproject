@@ -1,3 +1,7 @@
-out/**
-output/**  
-data/**   
+/output/**/*
+!/output/**/.gitkeep
+/data/**/*
+!/data/**/.gitkeep
+!/data/data_sjtu/.gitkeep
+!/data/data_zjnu/.gitkeep
+!/data/data_sansuo/.gitkeep

@@ -2,7 +2,7 @@ import os
 import pathlib
 import sys
 
-# from src.Orchestrator.zjnu_main import main
+from src.Orchestrator.zjnu_main import main
 
 
 if __name__ == "__main__":
