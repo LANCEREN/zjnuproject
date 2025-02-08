@@ -4,9 +4,9 @@ from typing import List
 
 import numpy as np
 import torch
-from data_structure import AccountInfo, PostInfo
-from Feature_Extract.enums import Platform
-from Feature_Extract.utils import FeatureClusterSelector
+from src.ZJNU.data_structure import AccountInfo, PostInfo
+from src.ZJNU.Feature_Extract.enums import Platform
+from src.ZJNU.Feature_Extract.utils import FeatureClusterSelector
 from sklearn.preprocessing import LabelEncoder
 from transformers import AutoModel, AutoModelForSequenceClassification, AutoTokenizer
 
