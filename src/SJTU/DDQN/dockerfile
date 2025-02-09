@@ -50,5 +50,5 @@ COPY src/ ./src/
 COPY __main__.py ./__main__.py  
 
 # 设置默认命令
-# CMD ["python3", "DDQN_Interface.py"]
+# CMD ["python3", "src/SJTU/DDQN/redis_main.py"]
 CMD ["/bin/bash"]

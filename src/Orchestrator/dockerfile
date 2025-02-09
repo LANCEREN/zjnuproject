@@ -2,9 +2,9 @@
 FROM python:3.9-slim
 
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY src/Orchestrator/requirements.txt ./src/Orchestrator/requirements.txt
+RUN pip install -r ./src/Orchestrator/requirements.txt
 
 COPY . .
 
-CMD ["python", "main.py"]
+CMD ["python", "redis_main.py"]

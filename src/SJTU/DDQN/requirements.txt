@@ -81,6 +81,7 @@ pytz==2024.2
 PyWavelets==1.4.1
 PyYAML==6.0.2
 ray==2.10.0
+redis==5.2.1
 referencing==0.35.1
 regex==2024.11.6
 requests==2.32.3
