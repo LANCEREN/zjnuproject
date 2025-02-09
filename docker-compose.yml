@@ -1,18 +1,20 @@
-version: '3.8'
-
 services:
   redis:
     image: redis:5.0
-    ports:
-      - "6379:6379"
+    networks:
+      - zjnuproject-network
   sjtu_algorithm_ddqn:    # sjtu开发容器配置举例（需自己修改本文件和子算法中的dockerfile文件）
     build:
       context: .
       dockerfile: src/SJTU/DDQN/Dockerfile
     container_name: sjtu_algorithm_ddqn
+    networks:
+      - zjnuproject-network
     environment:
-      - NVIDIA_VISIBLE_DEVICES=all       # 所有 GPU 对容器可见
-      - NVIDIA_DRIVER_CAPABILITIES=all   # 启用所有 NVIDIA 驱动功能 
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      NVIDIA_VISIBLE_DEVICES: all       # 所有 GPU 对容器可见
+      NVIDIA_DRIVER_CAPABILITIES: all   # 启用所有 NVIDIA 驱动功能 
     volumes:
       - ./src:/app/src      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
       - ./__main__.py:/app/__main__.py  
@@ -35,9 +37,13 @@ services:
   #     context: .
   #     dockerfile: src/ZJNU/Feature_Extract/Dockerfile
   #   container_name: zjnu_algorithm_FE
-  #   environment:
-  #     - NVIDIA_VISIBLE_DEVICES=all
-  #     - NVIDIA_DRIVER_CAPABILITIES=all   # 启用所有 NVIDIA 驱动功能 
+      # networks:
+      #     - zjnuproject-network
+      # environment:
+      # REDIS_HOST: redis
+      # REDIS_PORT: 6379
+      # NVIDIA_VISIBLE_DEVICES: all       # 所有 GPU 对容器可见
+      # NVIDIA_DRIVER_CAPABILITIES: all   # 启用所有 NVIDIA 驱动功能 
   #   volumes:
   #     - ./src:/app/src      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
   #     - ./__main__.py:/app/__main__.py  
@@ -60,6 +66,11 @@ services:
       context: .
       dockerfile: src/Orchestrator/dockerfile
     container_name: orchestrator
+    networks:
+      - zjnuproject-network
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     volumes:
       - ./src:/app/src      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
     stdin_open: true # docker run -i
@@ -67,6 +78,10 @@ services:
     command: python3 src/Orchestrator/redis_main.py  # 运行  命令 
     depends_on:
       - redis 
+
+networks:
+  zjnuproject-network:
+    driver: bridge
 
 volumes:
   shared_data:                        # 共享数据卷（可选）
