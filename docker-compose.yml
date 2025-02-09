@@ -3,10 +3,11 @@ services:
     image: redis:5.0
     networks:
       - zjnuproject-network
+
   sjtu_algorithm_ddqn:    # sjtu开发容器配置举例（需自己修改本文件和子算法中的dockerfile文件）
     build:
       context: .
-      dockerfile: src/SJTU/DDQN/Dockerfile
+      dockerfile: src/SJTU/DDQN/dockerfile
     container_name: sjtu_algorithm_ddqn
     networks:
       - zjnuproject-network
@@ -27,39 +28,37 @@ services:
     stdin_open: true # docker run -i
     tty: true        # docker run -t
     command: python3 src/SJTU/DDQN/redis_main.py  # 运行  命令 
+    depends_on:
+      - redis
+
+  zjnu_algorithm_FE:    # zjnu开发容器配置举例（需自己修改本文件和子算法中的dockerfile文件）
+    build:
+      context: .
+      dockerfile: src/ZJNU/Feature_Extract/Dockerfile
+    container_name: zjnu_algorithm_FE
+    networks:
+          - zjnuproject-network
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      NVIDIA_VISIBLE_DEVICES: all       # 所有 GPU 对容器可见
+      NVIDIA_DRIVER_CAPABILITIES: all   # 启用所有 NVIDIA 驱动功能 
+    volumes:
+      - ./src:/app/src      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
+      - ./__main__.py:/app/__main__.py  
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]  # 指定需要 GPU
+              count: 1             # 至少需要一块 GPU
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    command: /bin/bash  # 运行 nvidia-smi 命令 
     profiles:
       - development
     depends_on:
       - redis
-
-  # zjnu_algorithm_FE:    # zjnu开发容器配置举例（需自己修改本文件和子算法中的dockerfile文件）
-  #   build:
-  #     context: .
-  #     dockerfile: src/ZJNU/Feature_Extract/Dockerfile
-  #   container_name: zjnu_algorithm_FE
-      # networks:
-      #     - zjnuproject-network
-      # environment:
-      # REDIS_HOST: redis
-      # REDIS_PORT: 6379
-      # NVIDIA_VISIBLE_DEVICES: all       # 所有 GPU 对容器可见
-      # NVIDIA_DRIVER_CAPABILITIES: all   # 启用所有 NVIDIA 驱动功能 
-  #   volumes:
-  #     - ./src:/app/src      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
-  #     - ./__main__.py:/app/__main__.py  
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - capabilities: [gpu]  # 指定需要 GPU
-  #             count: 1             # 至少需要一块 GPU
-  #   stdin_open: true # docker run -i
-  #   tty: true        # docker run -t
-  #   command: /bin/bash  # 运行 nvidia-smi 命令 
-  #   profiles:
-  #     - development
-  #   depends_on:
-  #     - redis
 
   orchestrator:
     build:
