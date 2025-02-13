@@ -16,16 +16,18 @@ def run_algorithm(algorithm_name, input_data):
     # 等待结果
     result_queue_name = f"{algorithm_name}_result_queue"
     while True:
-        result = r.blpop(result_queue_name, timeout=10)[1].decode('utf-8')
-        if result: 
-            data = json.loads(result)
+        result = r.blpop(result_queue_name, timeout=10)
+        if result is not None: 
+            data = json.loads(result[1].decode('utf-8'))
             print(f"Data received from {result_queue_name}|{data['algorithm']}:")
             print(f"ID: {data['id']}")
             print(f"Name: {data['name']}")
             print(f"Active: {data['active']}")
             print(f"Scores: {data['scores']}")
             print(f"Metadata: {data['metadata']}")
-            return result
+            return data
+        else:
+            print("No data received, retrying...")
         time.sleep(1)
 
 
@@ -33,4 +35,4 @@ if __name__ == "__main__":
     # 按顺序调用子算法
     input_data = "example input for telecommunication."
     print(input_data)
-    result1 = run_algorithm("sjtu_ddqn_algorithm", input_data)
+    result = run_algorithm("sjtu_ddqn_algorithm", input_data)

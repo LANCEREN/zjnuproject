@@ -6,7 +6,7 @@
 
 ## 项目结构
 
-```
+```bash
 
 ├── docker-compose.yml                    # Docker Compose 文件，用于管理多个服务
 ├── __init__.py
@@ -52,7 +52,6 @@
 
 ```
 
-
 ## 环境要求
 
 - Docker: 20.10.x 或更高版本，SJTU采用27.5.0
@@ -68,15 +67,20 @@ cd zjnuproject
 ```
 
 ### 方案一：使用本地conda环境运行
+
 #### 1. 安装conda
+
 #### 2. 创建conda环境并激活conda环境
+
 #### 3. 根据requirements.txt安装相关依赖
+
 #### 4. 在终端或IDE中运行脚本
 
    ```bash
    在根目录 zjnuproject/ 下运行
    python __main__.py
    ```
+
 或
 
    ```bash
@@ -97,7 +101,7 @@ docker build -t zjnu_algorithm_FE -f ZJNU/Feature_Extract/Dockerfile .
 
    注：该命令应在主目录下执行，这将根据 `Dockerfile` 文件中的配置，构建子算法服务。`Dockerfile` 中应包含基础环境配置，如 Python 版本、常用库等。
 
-方法二：**docker-compose build指令构建各个子算法镜像** 
+方法二：**docker-compose build指令构建各个子算法镜像**
 
    ```bash
    docker-compose build sjtu_algorithm_ddqn
@@ -137,12 +141,15 @@ docker-compose up -d
 
 每个子算法文件夹应当根据自己的依赖环境列出所需依赖包和版本号
 **并确保可以用类似下发的指令安装无冲突**
+
 ```bash
 pip3 install --no-cache-dir -r ./SJTU/DDQN/requirements.txt
 ```
 
 ### 4. Dockerfile
+
 每个子算法文件夹应当根据自己的依赖环境构筑自己的dockerfile
+
 - **src/SJTU/DDQN/Dockerfile**: 用于构建子算法1的镜像，并安装子算法1的特定依赖。
 - **src/ZJNU/Feature_Extract/Dockerfile**: 用于构建子算法2的镜像，并安装子算法2的特定依赖。
 
@@ -282,7 +289,7 @@ services:
 
 ### 代码风格管理
 
-  - 可安装 black flake isort 统一代码风格
+- 可安装 black flake isort 统一代码风格
 
 ### 数据管理
 
@@ -291,7 +298,6 @@ services:
 ### 模型管理
 
 <!-- 训练好的模型应放置在 `models/` 目录下，Docker 容器将通过卷挂载访问这些模型。 -->
-
 
 ## 常见问题
 
@@ -315,7 +321,6 @@ services:
 - 提交前请运行测试，确保功能正常。
 - 更新 `README.md` 文件，反映最新变化。
 
-
 在贡献代码时，请遵循以下步骤：
 
 1. 克隆项目
@@ -324,20 +329,24 @@ services:
 4. 提交更改 (`git commit -am 'Add some feature'`)
 5. 推送到自己的子分支 (`git push origin feature/YourFeatureName`)
 6. 切换到主分支，然后在确保主分支为最新的情况下将其他分支的版本合并到主分支并推送到远程仓库
+
 ```bash
 git checkout master
 git pull origin master
-# --no-ff采用非快速合并方法合并代码，方便后续开发
-git merge --no-ff -m "fix bugs." feature/YourFeatureName
+# 采用合并方法合并代码，方便后续开发
+git merge -m "fix bugs." feature/YourFeatureName
 git push origin master
 ```
+
 7. **解决冲突**（如果有）：如果在合并过程中发生冲突，Git会暂停合并，并提示你手动解决冲突。你可以使用文本编辑器打开包含冲突的文件，手动解决冲突部分，然后保存文件。解决完所有冲突后，使用git add命令将解决后的文件标记为已解决，最后使用git commit命令提交合并结果。例如：
+
 ```bash
 git status  # 查看冲突文件列表
 # 手动编辑冲突文件，解决冲突
 git add <冲突文件>  # 标记冲突文件为已解决
 git commit -m "解决冲突并合并主分支代码"  # 提交合并结果
 ```
+
 如对git操作缺乏基础，可以参考学习以下链接：
 [Git教程](https://liaoxuefeng.com/books/git/branch/policy/index.html)
 ![示例](https://liaoxuefeng.com/books/git/branch/policy/branches.png)
@@ -346,11 +355,8 @@ git commit -m "解决冲突并合并主分支代码"  # 提交合并结果
 
 如有任何问题或建议，请通过以下方式联系我们：
 
-- 邮箱：lanceren@example.com
+- 邮箱：<lanceren@example.com>
 
 ## 许可证
 
 本项目采用 [MIT 许可证](LICENSE)。
-
-
-
