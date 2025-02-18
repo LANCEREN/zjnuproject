@@ -1,8 +1,8 @@
-from typing import Any, Dict, List, Optional
+from typing import Optional, List
 
-import numpy as np
 import torch
 from pydantic import BaseModel
+
 
 
 # 帖子信息模型
@@ -45,7 +45,7 @@ class AccountInfo(BaseModel, arbitrary_types_allowed=True):
     class UserFeature(BaseModel):
         account_id: str  # 用户账号 ID
         gender: int  # 用户的性别(编码数据)
-        verified: Optional[int]  # 用户的认证状态(编码数据)
+        verified: int  # 用户的认证状态(编码数据)
         ip: int  # 用户的 IP 地址(编码数据)
         contents_count: int  # 用户发布的内容数
         friends_count: int  # 用户的好友数
@@ -67,7 +67,6 @@ class AccountInfo(BaseModel, arbitrary_types_allowed=True):
     photo: str  # 用户的头像链接，指向头像图片的 URL
     homepage: str  # 用户的主页链接
     personal_desc: str  # 用户的个人简介
-    personal_desc_tensor: np.ndarray  # 用户的个人简介的向量化表示
     birthday: str  # 用户的生日，通常为字符串格式（例如 "1994-04-10 白羊座"）
     regis_time: str  # 用户的注册时间，通常为字符串格式的日期时间（例如 "2020-06-01 10:00:00"）
     friends: List[Friend]  # 好友列表，包含一个或多个 Friend 对象
@@ -89,14 +88,12 @@ class AccountInfo(BaseModel, arbitrary_types_allowed=True):
 
 # 传播的每一轮的信息模型
 class ICResult(BaseModel):
-    seed: List[int]  # 策略生成的种子节点列表
-    P_S: List[int]  # 易感状态节点的数量
-    P_I1: List[int]  # I1状态节点的累计数量
-    P_I2: List[int]  # I2状态节点的累计数量
-    P_R: List[int]  # 免疫状态节点的累计数量
-    activation_paths_info1: List[str]  # 记录I1传播的激活路径,如['1 2','32 42']代表1激活2,32激活42
-    activation_paths_info2: List[str]  # 记录I2传播的激活路径
-    step_activations_info1: List[
-        str
-    ]  # 记录每步I1状态节点的激活信息，如['1 5 3','9 4 7 8']代表第一个时间步激活1,5,3，第二个时间步激活9,4,7,8
-    step_activations_info2: List[str]  # 记录每步I2状态节点的激活信息
+    seed: list[int]  # 策略生成的种子节点列表
+    P_S: list[int]  # 易感状态节点的数量
+    P_I1: list[int]  # I1状态节点的累计数量
+    P_I2: list[int]  # I2状态节点的累计数量
+    P_R: list[int]  # 免疫状态节点的累计数量
+    activation_paths_info1: list[str]  # 记录I1传播的激活路径,如['1 2','32 42']代表1激活2,32激活42
+    activation_paths_info2: list[str]  # 记录I2传播的激活路径
+    step_activations_info1: list[str]  # 记录每步I1状态节点的激活信息，如['1 5 3','9 4 7 8']代表第一个时间步激活1,5,3，第二个时间步激活9,4,7,8
+    step_activations_info2: list[str]  # 记录每步I2状态节点的激活信息

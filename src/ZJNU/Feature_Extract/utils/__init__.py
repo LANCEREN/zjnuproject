@@ -1,11 +1,9 @@
-import warnings
 from typing import List
 
-warnings.filterwarnings("ignore")
 import networkx as nx
 import numpy as np
 import pandas as pd
-from scipy.cluster.hierarchy import fcluster, linkage
+from scipy.cluster.hierarchy import linkage, fcluster
 from scipy.spatial.distance import pdist
 from sklearn.cluster import SpectralClustering
 from sklearn.preprocessing import StandardScaler
@@ -14,15 +12,13 @@ from src.ZJNU.data_structure import AccountInfo
 
 
 class FeatureClusterSelector:
-    def __init__(
-        self,
-        accounts_info: List[AccountInfo],
-        sample_size=2000,
-        unwanted_cols=None,
-        vis_threshold=0.2,
-        color_threshold=0.7,
-        correlation_threshold=0.7,
-    ):
+    def __init__(self,
+                 accounts_info: List[AccountInfo],
+                 sample_size=2000,
+                 unwanted_cols=None,
+                 vis_threshold=0.2,
+                 color_threshold=0.7,
+                 correlation_threshold=0.7):
         """
         初始化 FeatureClusterSelector 类。
 
@@ -66,125 +62,93 @@ class FeatureClusterSelector:
         # pd.set_option('display.max_columns', None)
 
         # 如果列名为数字，尝试修复为字段名
-        if self.season_stats_full.columns.dtype == "int64":  # 列名是数字
+        if self.season_stats_full.columns.dtype == 'int64':  # 列名是数字
             print("Column names are numerical indices, trying to infer field names...")
             first_row = self.season_stats_full.iloc[0]  # 获取第一行内容
             if isinstance(first_row[0], tuple):  # 判断值是否是 tuple
                 # 提取所有字段名 (第一行每个元组的第一个元素)
-                inferred_column_names = [
-                    col[0] if isinstance(col, tuple) else col for col in first_row
-                ]
+                inferred_column_names = [col[0] if isinstance(col, tuple) else col for col in first_row]
                 self.season_stats_full.columns = inferred_column_names  # 设置列名
-                self.season_stats_full = self.season_stats_full[1:].reset_index(
-                    drop=True
-                )  # 删除第一行数据（已作为列名）
+                self.season_stats_full = self.season_stats_full[1:].reset_index(drop=True)  # 删除第一行数据（已作为列名）
             else:
-                raise ValueError(
-                    "Failed to infer column names. Data format is unexpected."
-                )
+                raise ValueError("Failed to infer column names. Data format is unexpected.")
 
-        # # 如果列中的值是 tuple，提取 tuple 的第二个元素
-        # self.season_stats_full = self.season_stats_full.applymap(lambda x: x[1] if isinstance(x, tuple) else x)
-        self.season_stats_full = self.season_stats_full.apply(
-            lambda col: col.apply(lambda x: x[1] if isinstance(x, tuple) else x))
+        # 如果列中的值是 tuple，提取 tuple 的第二个元素
+        self.season_stats_full = self.season_stats_full.applymap(lambda x: x[1] if isinstance(x, tuple) else x)
 
-        # # 打印前几行用于检查
-        # print(self.season_stats_full.head())
-        # print(f"Total number of rows in the dataset: {self.season_stats_full.shape[0]}")
-        # print(f"Total number of columns in the dataset: {self.season_stats_full.shape[1]}")
+        # 打印前几行用于检查
+        print(self.season_stats_full.head())
+        print(f"Total number of rows in the dataset: {self.season_stats_full.shape[0]}")
+        print(f"Total number of columns in the dataset: {self.season_stats_full.shape[1]}")
 
         # 确保 sample_size 不超过总行数
         self.sample_size = min(self.season_stats_full.shape[0], self.sample_size)
 
         # 提取样本数据和剩余数据
         self.season_stats_sample = self.season_stats_full.head(self.sample_size)
-        self.season_stats_rest = self.season_stats_full.iloc[self.sample_size :].copy()
+        self.season_stats_rest = self.season_stats_full.iloc[self.sample_size:].copy()
 
-        # print(f"Sample size (used for clustering and feature selection): {self.season_stats_sample.shape[0]}")
-        # print(f"Remaining data size: {self.season_stats_rest.shape[0]}")
+        print(f"Sample size (used for clustering and feature selection): {self.season_stats_sample.shape[0]}")
+        print(f"Remaining data size: {self.season_stats_rest.shape[0]}")
 
     def preprocess_data(self):
         """选择数值型的列、排除不需要的列、分离零方差列、标准化数据以及清理数据。"""
         # 1. 排除不需要的列
         if self.unwanted_cols:
             print(f"Excluding unwanted columns: {self.unwanted_cols}")
-        selected_cols = [
-            col
-            for col in self.season_stats_sample.columns
-            if col not in self.unwanted_cols
-        ]
+        selected_cols = [col for col in self.season_stats_sample.columns if col not in self.unwanted_cols]
 
         # 2. 选择数值型的列
-        self.numeric_stats_sample = self.season_stats_sample[
-            selected_cols
-        ].select_dtypes(include=[np.number])
-        print(
-            f"Number of numeric columns selected for analysis: {self.numeric_stats_sample.shape[1]}"
-        )
+        self.numeric_stats_sample = self.season_stats_sample[selected_cols].select_dtypes(include=[np.number])
+        print(f"Number of numeric columns selected for analysis: {self.numeric_stats_sample.shape[1]}")
 
         # 3. 检查是否有数值型列
         if self.numeric_stats_sample.empty:
-            raise ValueError(
-                "No numeric columns found after excluding unwanted columns."
-            )
+            raise ValueError("No numeric columns found after excluding unwanted columns.")
 
         # 4. 识别零方差的数值型列和具有变化的数值型列
         self.constant_numeric_cols = self.numeric_stats_sample.columns[
-            self.numeric_stats_sample.nunique(dropna=False) <= 1
-        ].tolist()
-        self.variable_numeric_stats_sample = self.numeric_stats_sample.drop(
-            columns=self.constant_numeric_cols
-        )
-        print(
-            f"Number of constant numeric columns to retain: {len(self.constant_numeric_cols)}"
-        )
+            self.numeric_stats_sample.nunique(dropna=False) <= 1].tolist()
+        self.variable_numeric_stats_sample = self.numeric_stats_sample.drop(columns=self.constant_numeric_cols)
+        print(f"Number of constant numeric columns to retain: {len(self.constant_numeric_cols)}")
         if self.constant_numeric_cols:
             print(f"Constant numeric columns: {self.constant_numeric_cols}")
 
-        print(
-            f"Number of variable numeric columns for analysis: {self.variable_numeric_stats_sample.shape[1]}"
-        )
+        print(f"Number of variable numeric columns for analysis: {self.variable_numeric_stats_sample.shape[1]}")
 
         # 5. 识别非数值型的列（包括未被排除的）
-        self.non_numeric_cols = [
-            col
-            for col in self.season_stats_full.columns
-            if col not in self.numeric_stats_sample.columns
-            and col not in self.unwanted_cols
-        ]
+        self.non_numeric_cols = [col for col in self.season_stats_full.columns
+                                 if col not in self.numeric_stats_sample.columns and col not in self.unwanted_cols]
         print(f"Number of non-numeric columns to retain: {len(self.non_numeric_cols)}")
 
         # 6. 检查是否有重复列名
         if self.season_stats_full.columns.duplicated().any():
-            duplicated_cols = self.season_stats_full.columns[
-                self.season_stats_full.columns.duplicated()
-            ].unique()
+            duplicated_cols = self.season_stats_full.columns[self.season_stats_full.columns.duplicated()].unique()
             raise ValueError(
-                f"Duplicated column names found: {duplicated_cols}. Please ensure all column names are unique."
-            )
+                f"Duplicated column names found: {duplicated_cols}. Please ensure all column names are unique.")
 
         # 7. 检查数值型列是否包含非数值数据
         for col in self.variable_numeric_stats_sample.columns:
             if not pd.api.types.is_numeric_dtype(self.season_stats_sample[col]):
                 print(f"警告：列 '{col}' 被标记为数值型，但包含非数值数据。将其转换为数值型，非数值数据将被置为 NaN。")
-                self.variable_numeric_stats_sample[col] = pd.to_numeric(
-                    self.variable_numeric_stats_sample[col], errors="coerce"
-                )
+                self.variable_numeric_stats_sample[col] = pd.to_numeric(self.variable_numeric_stats_sample[col],
+                                                                        errors='coerce')
 
         # 8. 删除仍包含 NaN 的行（由于转换可能引入的 NaN）
         initial_shape = self.variable_numeric_stats_sample.shape
         self.variable_numeric_stats_sample.dropna(inplace=True)
         final_shape = self.variable_numeric_stats_sample.shape
-        # if initial_shape != final_shape:
-        # print(f"Deleted {initial_shape[0] - final_shape[0]} rows due to NaN values after conversion.")
+        if initial_shape != final_shape:
+            print(f"Deleted {initial_shape[0] - final_shape[0]} rows due to NaN values after conversion.")
 
         # 9. 数据标准化
-        self.norm_variable_numeric_stats_sample = (self.variable_numeric_stats_sample - self.variable_numeric_stats_sample.mean()) / self.variable_numeric_stats_sample.std()
-        # print("Data has been standardized (mean=0, std=1).")
+        self.norm_variable_numeric_stats_sample = (
+                                                          self.variable_numeric_stats_sample - self.variable_numeric_stats_sample.mean()) / self.variable_numeric_stats_sample.std()
+        print("Data has been standardized (mean=0, std=1).")
 
         # 10. 清理数据（虽然已经删除了 NaN 和零方差列，但这里保留以防）
         self.norm_variable_numeric_stats_sample = self.clean_dataset(self.norm_variable_numeric_stats_sample)
-        # print(f"Sample data size after cleaning: {self.norm_variable_numeric_stats_sample.shape}")
+        print(f"Sample data size after cleaning: {self.norm_variable_numeric_stats_sample.shape}")
 
     @staticmethod
     def clean_dataset(df):
@@ -202,20 +166,20 @@ class FeatureClusterSelector:
         initial_shape = df.shape
         df.dropna(inplace=True)
         final_shape = df.shape
-        # print(f"Cleaned data: dropped {initial_shape[0] - final_shape[0]} rows containing NaN or infinite values.")
+        print(f"Cleaned data: dropped {initial_shape[0] - final_shape[0]} rows containing NaN or infinite values.")
         return df.astype(np.float64)
 
     def compute_correlation_matrix(self):
         """计算样本数据的相关矩阵。"""
         self.corr_matrix_sample = self.norm_variable_numeric_stats_sample.corr()
-        # print("相关矩阵（样本数据）：")
-        # print(self.corr_matrix_sample)
+        print("相关矩阵（样本数据）：")
+        print(self.corr_matrix_sample)
 
         # 检查相关矩阵是否包含 NaN
-        # if self.corr_matrix_sample.isnull().values.any():
-        #     print("警告：相关矩阵包含 NaN 值。请检查数据预处理步骤。")
-        # else:
-        #     print("相关矩阵已成功计算，不包含 NaN 值。")
+        if self.corr_matrix_sample.isnull().values.any():
+            print("警告：相关矩阵包含 NaN 值。请检查数据预处理步骤。")
+        else:
+            print("相关矩阵已成功计算，不包含 NaN 值。")
 
     @staticmethod
     def get_color(val, color_threshold):
@@ -237,25 +201,22 @@ class FeatureClusterSelector:
                 col2 = columns[j]
                 val = self.corr_matrix_sample.values[i, j]
                 if abs(val) > self.vis_threshold:
-                    G.add_edge(
-                        columns.index(col1),
-                        columns.index(col2),
-                        color=self.get_color(abs(val), self.color_threshold),
-                    )
+                    G.add_edge(columns.index(col1), columns.index(col2),
+                               color=self.get_color(abs(val), self.color_threshold))
 
         # 打印索引
-        # for i, colname in enumerate(columns):
-        #     if (i + 1) % 5 == 0:
-        #         print(f"{i} : {colname}")
-        #     else:
-        #         print(f"{i}: {colname}", end=", ")
-        # print()  # 换行
+        for i, colname in enumerate(columns):
+            if (i + 1) % 5 == 0:
+                print(f"{i} : {colname}")
+            else:
+                print(f"{i}: {colname}", end=", ")
+        print()  # 换行
 
         pos = nx.kamada_kawai_layout(G)
 
-        colors = list(nx.get_edge_attributes(G, "color").values())
+        colors = list(nx.get_edge_attributes(G, 'color').values())
         # If 'weight' was not set, default to 0.5
-        weights = [G[u][v].get("weight", 0.5) for u, v in G.edges()]
+        weights = [G[u][v].get('weight', 0.5) for u, v in G.edges()]
 
         # plt.figure(figsize=(12, 8))
         # nx.draw(G, pos,
@@ -268,7 +229,7 @@ class FeatureClusterSelector:
         # plt.title('Correlation Network Graph')
         # plt.show()
 
-    def plot_dendrogram_and_auto_select_clusters(self, method="ward"):
+    def plot_dendrogram_and_auto_select_clusters(self, method='ward'):
         """
         绘制树状图并自动选择聚类数量。
 
@@ -282,7 +243,7 @@ class FeatureClusterSelector:
         data = self.norm_variable_numeric_stats_sample.T  # 每一列代表一个特征
 
         # 计算特征之间的距离矩阵
-        distance_matrix = pdist(data, metric="euclidean")  # 或使用其他距离度量，如 'correlation'
+        distance_matrix = pdist(data, metric='euclidean')  # 或使用其他距离度量，如 'correlation'
 
         # 检查距离矩阵是否有非有限值
         if not np.all(np.isfinite(distance_matrix)):
@@ -304,7 +265,7 @@ class FeatureClusterSelector:
         distance_threshold = 5  # 可以根据需要调整或通过参数传递
 
         # 使用 fcluster 根据距离阈值生成聚类标签
-        cluster_labels = fcluster(Z, t=distance_threshold, criterion="distance")
+        cluster_labels = fcluster(Z, t=distance_threshold, criterion='distance')
 
         # 计算聚类数
         n_clusters = len(np.unique(cluster_labels))
@@ -312,7 +273,7 @@ class FeatureClusterSelector:
         # 设置聚类数
         self.n_clusters = n_clusters
 
-        # print(f"确定的聚类数: {self.n_clusters}")
+        print(f"确定的聚类数: {self.n_clusters}")
         return self.n_clusters
 
     def perform_spectral_clustering(self):
@@ -322,30 +283,21 @@ class FeatureClusterSelector:
 
         # 应用阈值
         adj_sample_thresholded = adj_sample.copy()
-        adj_sample_thresholded[
-            np.abs(adj_sample_thresholded) < self.correlation_threshold
-        ] = 0  # 应用阈值
+        adj_sample_thresholded[np.abs(adj_sample_thresholded) < self.correlation_threshold] = 0  # 应用阈值
 
         # 确保邻接矩阵没有非有限值
-        assert np.all(
-            np.isfinite(adj_sample_thresholded)
-        ), "Adjacency matrix contains non-finite values"
+        assert np.all(np.isfinite(adj_sample_thresholded)), "Adjacency matrix contains non-finite values"
 
         # 执行谱聚类
-        sc = SpectralClustering(
-            n_clusters=self.n_clusters,
-            affinity="precomputed",
-            n_init=100,
-            random_state=42,
-        )
+        sc = SpectralClustering(n_clusters=self.n_clusters, affinity='precomputed', n_init=100, random_state=42)
         self.clusters = sc.fit_predict(adj_sample_thresholded)
-        # print("聚类结果 (Clusters):")
-        # for c in np.unique(self.clusters):
-        #     cols = self.norm_variable_numeric_stats_sample.columns[np.where(self.clusters == c)]
-        #     print(f"Cluster {c}:")
-        #     print(f"Number of features: {cols.size}")
-        #     print(cols.tolist())
-        #     print("---")
+        print("聚类结果 (Clusters):")
+        for c in np.unique(self.clusters):
+            cols = self.norm_variable_numeric_stats_sample.columns[np.where(self.clusters == c)]
+            print(f"Cluster {c}:")
+            print(f"Number of features: {cols.size}")
+            print(cols.tolist())
+            print("---")
 
     @staticmethod
     def calculate_feature_importance(cluster_data):
@@ -385,9 +337,7 @@ class FeatureClusterSelector:
             relevant_k = corr_matrix.iloc[idx].sort_values().index.tolist()
 
             # 将相关特征的名称转换为整数索引
-            relevant_k_indices = [
-                normalized_data.columns.get_loc(col) for col in relevant_k
-            ]
+            relevant_k_indices = [normalized_data.columns.get_loc(col) for col in relevant_k]
 
             # 找到最小相关系数
             min_r = corr_matrix.iloc[idx].min()
@@ -413,22 +363,22 @@ class FeatureClusterSelector:
         for cluster_id in np.unique(self.clusters):
             cluster_indices = np.where(self.clusters == cluster_id)[0]
             cluster_data = self.variable_numeric_stats_sample.iloc[:, cluster_indices]
-            # print(f"Cluster {cluster_id}")
+            print(f"Cluster {cluster_id}")
             feature_importance = self.calculate_feature_importance(cluster_data)
             feature_importance = feature_importance.sort_values(ascending=False)
-            # print("Feature Importance:")
-            # print(feature_importance)
-            # print(f"Number of features in cluster: {len(feature_importance)}")
+            print("Feature Importance:")
+            print(feature_importance)
+            print(f"Number of features in cluster: {len(feature_importance)}")
             # 获取最重要的特征
             if not feature_importance.empty:
                 most_important_feature = feature_importance.idxmax()
                 self.most_important_features[cluster_id] = most_important_feature
-            #     print(f"Most important feature: {most_important_feature}")
-            # print("---")
+                print(f"Most important feature: {most_important_feature}")
+            print("---")
 
-        # print("Most important features by cluster:")
-        # for cluster_id, feature in self.most_important_features.items():
-        #     # print(f"Cluster {cluster_id}: {feature}")
+        print("Most important features by cluster:")
+        for cluster_id, feature in self.most_important_features.items():
+            print(f"Cluster {cluster_id}: {feature}")
 
     def apply_feature_selection(self):
         """仅保留每个聚类的最重要特征，删除其余特征，并应用到整个数据集。"""
@@ -437,35 +387,22 @@ class FeatureClusterSelector:
         # print("Features to keep:", self.features_to_keep)
 
         # 确保特征存在于整个数值型数据集中
-        missing_features = [
-            feature
-            for feature in self.features_to_keep
-            if feature not in self.variable_numeric_stats_sample.columns
-        ]
+        missing_features = [feature for feature in self.features_to_keep if
+                            feature not in self.variable_numeric_stats_sample.columns]
         if missing_features:
             print(f"警告：以下特征在整个数值型数据集中未找到并将被忽略: {missing_features}")
-            self.features_to_keep = [
-                feature
-                for feature in self.features_to_keep
-                if feature in self.variable_numeric_stats_sample.columns
-            ]
+            self.features_to_keep = [feature for feature in self.features_to_keep if
+                                     feature in self.variable_numeric_stats_sample.columns]
 
-        # print("Final Features to keep after removing missing features:", self.features_to_keep)
+        print("Final Features to keep after removing missing features:", self.features_to_keep)
 
         # 创建一个仅包含最重要特征的简化数据集
         # 1. 保留所有非数值型的列
-        reduced_non_numeric = (
-            self.season_stats_full[self.non_numeric_cols]
-            if self.non_numeric_cols
-            else pd.DataFrame()
-        )
+        reduced_non_numeric = self.season_stats_full[self.non_numeric_cols] if self.non_numeric_cols else pd.DataFrame()
 
         # 2. 保留零方差的数值型列
-        reduced_constant_numeric = (
-            self.season_stats_full[self.constant_numeric_cols]
-            if self.constant_numeric_cols
-            else pd.DataFrame()
-        )
+        reduced_constant_numeric = self.season_stats_full[
+            self.constant_numeric_cols] if self.constant_numeric_cols else pd.DataFrame()
 
         # 3. 保留选定的数值型特征
         reduced_selected_numeric = self.season_stats_full[self.features_to_keep]
@@ -481,12 +418,8 @@ class FeatureClusterSelector:
         self.reduced_numeric_stats_full = pd.concat(data_frames, axis=1)
 
         # 检查冗余数据
-        all_kept_columns = set(
-            self.features_to_keep + self.non_numeric_cols + self.constant_numeric_cols
-        )
-        redundant_columns = [
-            col for col in self.season_stats_full.columns if col not in all_kept_columns
-        ]
+        all_kept_columns = set(self.features_to_keep + self.non_numeric_cols + self.constant_numeric_cols)
+        redundant_columns = [col for col in self.season_stats_full.columns if col not in all_kept_columns]
 
         if redundant_columns:
             print("冗余数据字段名（未被保留的字段）:")

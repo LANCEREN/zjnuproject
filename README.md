@@ -16,7 +16,7 @@
 ├── README.md                             # 项目说明文件
 ├── src                                   # 所有源代码文件 包含各个子算法
 │   ├── Orchestrator                      # 调度程序模块
-│   │   ├── dockerfile
+│   │   ├── Dockerfile
 │   │   ├── redis_main.py                 # 容器化调度主函数入口（未实现）
 │   │   └── zjnu_main.py                  # 旧的主函数入口,本阶段用于过渡
 │   ├── SJTU                              # SJTU 复杂开发的算法
@@ -46,7 +46,7 @@
 │       │   └── data_zjnu
 │       ├── output              # 输出存放
 │       │   └── weights
-│       ├── dockerfile          # 子算法1的 Dockerfile
+│       ├── Dockerfile          # 子算法1的 Dockerfile
 │       └── requirements.txt    # 子算法1的 Python 依赖列表
 ...
 
