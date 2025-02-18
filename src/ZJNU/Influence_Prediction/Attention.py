@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from Influence_Prediction.utils import acc_f1, get_output, split_data
+from src.ZJNU.Influence_Prediction.utils import acc_f1, get_output, split_data
 from sklearn.metrics import (
     average_precision_score,
     precision_score,
