@@ -19,6 +19,7 @@ services:
     volumes:
       - ./src:/app/src      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
       - ./__main__.py:/app/__main__.py  
+      - shared_data:/shared_data
     deploy:
       resources:
         reservations:
@@ -27,7 +28,7 @@ services:
               count: 1             # 至少需要一块 GPU
     stdin_open: true # docker run -i
     tty: true        # docker run -t
-    command: python3 src/SJTU/DDQN/redis_main.py  # 运行  命令 
+    command: /bin/bash  # 运行  命令 
     depends_on:
       - redis
 
@@ -46,6 +47,7 @@ services:
     volumes:
       - ./src:/app/src      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
       - ./__main__.py:/app/__main__.py  
+      - shared_data:/shared_data
     deploy:
       resources:
         reservations:
@@ -72,9 +74,11 @@ services:
       REDIS_PORT: 6379
     volumes:
       - ./src:/app/src      # 开发时挂载代码,方便开发时实时更新代码（生产环境可移除）
+      - ./__main__.py:/app/__main__.py  
+      - shared_data:/shared_data
     stdin_open: true # docker run -i
     tty: true        # docker run -t
-    command: python3 src/Orchestrator/redis_main.py  # 运行  命令 
+    command: /bin/bash  # 运行  命令 
     depends_on:
       - redis 
 

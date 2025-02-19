@@ -5,6 +5,9 @@ WORKDIR /app
 COPY src/Orchestrator/requirements.txt ./src/Orchestrator/requirements.txt
 RUN pip install -r ./src/Orchestrator/requirements.txt
 
-COPY . .
+# 复制应用代码
+COPY src/ ./src/
+COPY __main__.py ./__main__.py  
 
-CMD ["python", "redis_main.py"]
+# CMD ["python", "src/Orchestrator/redis_main.py"]
+CMD ["/bin/bash"]
