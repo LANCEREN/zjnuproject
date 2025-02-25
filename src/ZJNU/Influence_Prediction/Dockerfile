@@ -45,11 +45,13 @@ RUN python3 --version
 # 复制应用代码
 COPY src/ ./src/
 COPY __main__.py ./__main__.py
-
+COPY main1.py ./main1.py
+COPY main2.py ./main2.py
 # 设置默认命令
 # CMD ["python3", "src/SJTU/DDQN/redis_main.py"]
 # CMD ["python3", "__main__.py"]
 #CMD ["/bin/bash"]
 #CMD ["python --version"]
 #CMD ["python3", "--version"]
-CMD ["python3", "__main__.py"]
+#CMD ["python3", "__main__.py"]
+#CMD ["python3", "main1.py"]
