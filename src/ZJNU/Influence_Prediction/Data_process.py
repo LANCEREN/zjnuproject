@@ -4,8 +4,8 @@ import random
 import networkx
 import networkx as nx
 import numpy as np
-from Influence_Prediction.LINE.line import LINE
-from Influence_Prediction.utils import (
+from src.ZJNU.Influence_Prediction.LINE.line import LINE
+from src.ZJNU.Influence_Prediction.utils import (
     create_networkx_graph,
     dynamic_network_partition,
     instance_normalization,

@@ -4,7 +4,6 @@ import networkx as nx
 import numpy as np
 import scipy.sparse as sp
 import torch
-from matplotlib import pyplot as plt
 from sklearn.metrics import accuracy_score, average_precision_score, f1_score
 
 
@@ -145,20 +144,6 @@ def create_networkx_graph(path, is_directed=True):
     idx = sorted(G.nodes)
     network = nx.relabel_nodes(G, idx_map)
     return network, idx_map, idx
-
-
-def visualize_graph(G, color):
-    plt.figure(figsize=(7, 7))
-    plt.xticks([])
-    plt.yticks([])
-    nx.draw_networkx(
-        G,
-        pos=nx.spring_layout(G, seed=42),
-        with_labels=False,
-        node_color=color,
-        cmap="Set2",
-    )
-    plt.show()
 
 
 def instance_normalization(X):

@@ -8,10 +8,10 @@ from pydantic import BaseModel
 
 def _read_json_file(file_path):
     try:
-        with open(file_path, "r", encoding="utf-8") as file:
+        with open(file_path, 'r', encoding='utf-8') as file:
             return json.load(file)
     except JSONDecodeError:
-        print(f"文件格式有误: {file_path}")
+        print(f'文件格式有误: {file_path}')
         return {}
 
 
@@ -49,47 +49,39 @@ class AccountInfo(BaseModel):
     followers: List[Follower]  # 粉丝列表，包含一个或多个 Follower 对象
 
 
-if __name__ == "__main__":
-    json_content = _read_json_file("./data/data.json")
+if __name__ == '__main__':
+    json_content = _read_json_file('./data/data.json')
     if json_content == {}:
         exit(0)
     accounts_id = set([])
-    posts_info = json_content.get("posts_info", [])
+    posts_info = json_content.get('posts_info', [])
     accounts_info: List[AccountInfo] = []
     for post in posts_info:
-        if post.get("userid", "") == "" or post.get("userid", "") in accounts_id:
+        if post.get('userid', '') in accounts_id:
             continue
-        accounts_id.add(post.get("userid", ""))
-        accounts_info.append(
-            AccountInfo(
-                account_id=post.get("userid", ""),
-                account=post.get("username", ""),
-                account_label=[],
-                verified=False,
-                verified_type=0,
-                validate_info="",
-                followers_count=np.random.randint(0, 200),
-                friends_count=np.random.randint(0, 200),
-                ip=post.get("site_ip_name", ""),
-                gender="男" if np.random.random() > 0.5 else "女",
-                contents_count=np.random.randint(0, 1000),
-                photo=post.get("url_profile_image", ""),
-                homepage="https://weibo.com/u/" + post.get("userid", ""),
-                personal_desc=post.get("site_board_name", ""),
-                birthday=str(np.random.randint(1980, 2010))
-                + "-"
-                + str(np.random.randint(1, 13))
-                + "-"
-                + str(np.random.randint(1, 29)),
-                regis_time=str(np.random.randint(2000, 2024))
-                + "-"
-                + str(np.random.randint(1, 13))
-                + "-"
-                + str(np.random.randint(1, 29)),
-                friends=[],
-                followers=[],
-            )
-        )
+        accounts_id.add(post.get('userid', ''))
+        accounts_info.append(AccountInfo(
+            account_id=post.get('userid', ''),
+            account=post.get('username', ''),
+            account_label=[],
+            verified=False,
+            verified_type=0,
+            validate_info='',
+            followers_count=np.random.randint(0, 200),
+            friends_count=np.random.randint(0, 200),
+            ip=post.get('site_ip_name', ''),
+            gender='男' if np.random.random() > 0.5 else '女',
+            contents_count=np.random.randint(0, 1000),
+            photo=post.get('url_profile_image', ''),
+            homepage='https://weibo.com/u/' + post.get('userid', ''),
+            personal_desc=post.get('site_board_name', ''),
+            birthday=str(np.random.randint(1980, 2010)) + '-' + str(np.random.randint(1, 13)) + '-' + str(
+                np.random.randint(1, 29)),
+            regis_time=str(np.random.randint(2000, 2024)) + '-' + str(np.random.randint(1, 13)) + '-' + str(
+                np.random.randint(1, 29)),
+            friends=[],
+            followers=[]
+        ))
     for account in accounts_info:
         count1 = 0
         count2 = 0
@@ -97,27 +89,23 @@ if __name__ == "__main__":
             selected = accounts_info[np.random.randint(0, len(accounts_info))]
             if selected.account_id == account.account_id:
                 continue
-            account.friends.append(
-                AccountInfo.Friend(
-                    account_id=selected.account_id,
-                    account=selected.account,
-                    homepage=selected.homepage,
-                )
-            )
+            account.friends.append(AccountInfo.Friend(
+                account_id=selected.account_id,
+                account=selected.account,
+                homepage=selected.homepage
+            ))
             count1 += 1
         while count2 < account.followers_count:
             selected = accounts_info[np.random.randint(0, len(accounts_info))]
             if selected.account_id == account.account_id:
                 continue
-            account.followers.append(
-                AccountInfo.Follower(
-                    account_id=selected.account_id,
-                    account=selected.account,
-                    homepage=selected.homepage,
-                )
-            )
+            account.followers.append(AccountInfo.Follower(
+                account_id=selected.account_id,
+                account=selected.account,
+                homepage=selected.homepage
+            ))
             count2 += 1
-    json_content["users_info"] = [account.model_dump() for account in accounts_info]
-    with open("./data/generate.json", "w", encoding="utf-8") as file:
+    json_content['users_info'] = [account.model_dump() for account in accounts_info]
+    with open('./data/generate.json', 'w', encoding='utf-8') as file:
         json.dump(json_content, file, ensure_ascii=False, indent=4)
-    print("生成用户数据")
+    print('生成用户数据')

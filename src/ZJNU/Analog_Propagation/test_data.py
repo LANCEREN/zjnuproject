@@ -1,17 +1,18 @@
 # 创建一个 UserFeature 类的实例
 import networkx as nx
 import torch
+
 from data_structure import AccountInfo, PostInfo
 
 user_feature1 = AccountInfo.UserFeature(
-    account_id="user1",
-    gender=1,
-    verified=1,
-    ip=12345,
-    contents_count=120,
-    friends_count=50,
-    followers_count=200,
-    platform=1,
+        account_id="user1",
+        gender=1,
+        verified=1,
+        ip=12345,
+        contents_count=120,
+        friends_count=50,
+        followers_count=200,
+        platform=1
 )
 
 user_feature2 = AccountInfo.UserFeature(
@@ -22,18 +23,24 @@ user_feature2 = AccountInfo.UserFeature(
     contents_count=90,
     friends_count=40,
     followers_count=150,
-    platform=2,
+    platform=2
 )
 
 follower1 = AccountInfo.Follower(
-    account_id="user1", account="follower_user_1", homepage="https://weibo.com/u/001"
+    account_id="user1",
+    account="follower_user_1",
+    homepage="https://weibo.com/u/001"
 )
 
 follower2 = AccountInfo.Follower(
-    account_id="user2", account="follower_user_2", homepage="https://weibo.com/u/002"
+    account_id="user2",
+    account="follower_user_2",
+    homepage="https://weibo.com/u/002"
 )
 follower3 = AccountInfo.Follower(
-    account_id="user3", account="follower_user_3", homepage="https://weibo.com/u/003"
+    account_id="user3",
+    account="follower_user_3",
+    homepage="https://weibo.com/u/003"
 )
 
 # 创建 AccountInfo 类的实例
@@ -62,7 +69,7 @@ account_info1 = AccountInfo(
     state=False,
     retweet_probability=0.5,
     retweet_pos_probability=0.6,
-    retweet_neg_probability=0.4,
+    retweet_neg_probability=0.4
 )
 
 account_info2 = AccountInfo(
@@ -90,7 +97,7 @@ account_info2 = AccountInfo(
     state=False,
     retweet_probability=0.7,
     retweet_pos_probability=0.65,
-    retweet_neg_probability=0.35,
+    retweet_neg_probability=0.35
 )
 
 # 你可以创建更多的 AccountInfo 数据，如下所示：
@@ -112,14 +119,14 @@ account_info3 = AccountInfo(
     birthday="1988-02-20",
     regis_time="2019-05-30 11:00:00",
     friends=[],
-    followers=[follower1, follower2],
+    followers=[follower1,follower2],
     user_feature=user_feature1,
     influence=0.92,
     user_embeddings=torch.randn(10),  # 模拟嵌入向量
     state=True,  # 这是种子节点
     retweet_probability=0.8,
     retweet_pos_probability=0.85,
-    retweet_neg_probability=0.15,
+    retweet_neg_probability=0.15
 )
 account_info4 = AccountInfo(
     account_id="user4",
@@ -146,76 +153,27 @@ account_info4 = AccountInfo(
     state=True,  # 这是种子节点
     retweet_probability=0.8,
     retweet_pos_probability=0.85,
-    retweet_neg_probability=0.15,
+    retweet_neg_probability=0.15
 )
 # 将这些账户信息存储到一个列表中
-account_info_list = [account_info1, account_info2, account_info3, account_info4]
+account_info_list = [account_info1, account_info2, account_info3,account_info4]
 
 attention_network = nx.DiGraph()
 attention_network.add_edges_from(
-    [("user1", "user2"), ("user2", "user3"), ("user3", "user4"), ("user1", "user3")]
-)  # user1 关注了 user2, user3，等
+    [('user1', 'user2'), ('user2', 'user3'), ('user3', 'user4'), ('user1', 'user3')])  # user1 关注了 user2, user3，等
 
 # 假设的帖文数据
 post_info_list = [  # 示例数据，可以从数据库或其他地方加载
-    PostInfo(
-        userid="user1",
-        relevant_user_id="user2",
-        sentiment=1,
-        is_original=False,
-        topic_id="t1",
-        content="content1",
-        publish_time="2025-01-08 12:00:00",
-        cnt_retweet=10,
-        cnt_comment=5,
-        cnt_agree=100,
-        page_action_type=1,
-        nickname="user1",
-        url="url1",
-    ),
-    PostInfo(
-        userid="user2",
-        relevant_user_id="user3",
-        sentiment=-1,
-        is_original=False,
-        topic_id="t2",
-        content="content2",
-        publish_time="2025-01-08 13:00:00",
-        cnt_retweet=20,
-        cnt_comment=10,
-        cnt_agree=200,
-        page_action_type=2,
-        nickname="user2",
-        url="url2",
-    ),
-    PostInfo(
-        userid="user3",
-        relevant_user_id="user4",
-        sentiment=1,
-        is_original=False,
-        topic_id="t3",
-        content="content3",
-        publish_time="2025-01-08 14:00:00",
-        cnt_retweet=30,
-        cnt_comment=15,
-        cnt_agree=300,
-        page_action_type=3,
-        nickname="user3",
-        url="url3",
-    ),
-    PostInfo(
-        userid="user4",
-        relevant_user_id="user1",
-        sentiment=0,
-        is_original=False,
-        topic_id="t4",
-        content="content4",
-        publish_time="2025-01-08 15:00:00",
-        cnt_retweet=5,
-        cnt_comment=2,
-        cnt_agree=50,
-        page_action_type=4,
-        nickname="user4",
-        url="url4",
-    ),
+    PostInfo(userid="user1", relevant_user_id="user2", sentiment=1, is_original=False, topic_id="t1",
+             content="content1", publish_time="2025-01-08 12:00:00", cnt_retweet=10, cnt_comment=5,
+             cnt_agree=100, page_action_type=1, nickname="user1", url="url1"),
+    PostInfo(userid="user2", relevant_user_id="user3", sentiment=-1, is_original=False, topic_id="t2",
+             content="content2", publish_time="2025-01-08 13:00:00", cnt_retweet=20, cnt_comment=10,
+             cnt_agree=200, page_action_type=2, nickname="user2", url="url2"),
+    PostInfo(userid="user3", relevant_user_id="user4", sentiment=1, is_original=False, topic_id="t3",
+             content="content3", publish_time="2025-01-08 14:00:00", cnt_retweet=30, cnt_comment=15,
+             cnt_agree=300, page_action_type=3, nickname="user3", url="url3"),
+    PostInfo(userid="user4", relevant_user_id="user1", sentiment=0, is_original=False, topic_id="t4",
+             content="content4", publish_time="2025-01-08 15:00:00", cnt_retweet=5, cnt_comment=2, cnt_agree=50,
+             page_action_type=4, nickname="user4", url="url4"),
 ]

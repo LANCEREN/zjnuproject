@@ -2,23 +2,21 @@ import json
 from json import JSONDecodeError
 from typing import List
 
-import numpy as np
 import torch
-from src.ZJNU.data_structure import AccountInfo, PostInfo
-from src.ZJNU.Feature_Extract.enums import Platform
-from src.ZJNU.Feature_Extract.utils import FeatureClusterSelector
 from sklearn.preprocessing import LabelEncoder
 from transformers import AutoModel, AutoModelForSequenceClassification, AutoTokenizer
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from src.ZJNU.Feature_Extract.enums import Platform
+from src.ZJNU.Feature_Extract.utils import FeatureClusterSelector
+from src.ZJNU.data_structure import AccountInfo, PostInfo
 
 
 def _read_json_file(file_path):
     try:
-        with open(file_path, "r", encoding="utf-8") as file:
+        with open(file_path, 'r', encoding='utf-8') as file:
             return json.load(file)
     except JSONDecodeError:
-        print(f"文件格式有误: {file_path}")
+        print(f'文件格式有误: {file_path}')
         return {}
 
 
@@ -27,70 +25,59 @@ def _read_user_data(data_path: str, platform: Platform) -> List[AccountInfo]:
         json_content = _read_json_file(data_path)
         if json_content == {}:
             return []
-        accounts_info = json_content.get("users_info", [])
+        accounts_info = json_content.get('users_info', [])
         res: List[AccountInfo] = []
         for account in accounts_info:
-            if account.get("account_id", "") == "":
-                continue
-            res.append(
-                AccountInfo(
-                    account_id=account.get("account_id", ""),
-                    account=account.get("account", ""),
-                    account_label=account.get("account_label", []),
-                    verified=account.get("verified", False),
-                    verified_type=account.get("verified_type", 0),
-                    validate_info=account.get("validate_info", ""),
-                    followers_count=account.get("followers_count", 0),
-                    friends_count=account.get("friends_count", 0),
-                    ip=account.get("ip", ""),
-                    gender=account.get("gender", ""),
-                    contents_count=account.get("contents_count", 0),
-                    user_feature=AccountInfo.UserFeature(
-                        account_id=account.get("account_id", ""),
-                        gender=0,
-                        ip=0,
-                        verified=0,
-                        contents_count=account.get("contents_count", 0),
-                        friends_count=account.get("friends_count", 0),
-                        followers_count=account.get("followers_count", 0),
-                        platform=platform.value,
-                    ),
-                    photo=account.get("photo", ""),
-                    homepage=account.get("homepage", ""),
-                    personal_desc=account.get("personal_desc", ""),
-                    personal_desc_tensor=np.array([]),
-                    birthday=account.get("birthday", ""),
-                    regis_time=account.get("regis_time", ""),
-                    friends=[
-                        AccountInfo.Friend(
-                            account_id=f.get("account_id", ""),
-                            account=f.get("account", ""),
-                            homepage=f.get("homepage", ""),
-                        )
-                        for f in account.get("friends", [])
-                    ],
-                    followers=[
-                        AccountInfo.Follower(
-                            account_id=f.get("account_id", ""),
-                            account=f.get("account", ""),
-                            homepage=f.get("homepage", ""),
-                        )
-                        for f in account.get("followers", [])
-                    ],
-                    influence=0,
-                    state=False,
-                    retweet_probability=0,
-                    retweet_neg_probability=0,
-                    retweet_pos_probability=0,
-                    user_embeddings=torch.Tensor(),
-                )
-            )
+            res.append(AccountInfo(
+                account_id=account.get('account_id', ''),
+                account=account.get('account', ''),
+                account_label=account.get('account_label', []),
+                verified=account.get('verified', False),
+                verified_type=account.get('verified_type', 0),
+                validate_info=account.get('validate_info', ''),
+                followers_count=account.get('followers_count', 0),
+                friends_count=account.get('friends_count', 0),
+                ip=account.get('ip', ''),
+                gender=account.get('gender', ''),
+                contents_count=account.get('contents_count', 0),
+                user_feature=AccountInfo.UserFeature(
+                    account_id=account.get('account_id', ''),
+                    gender=0,
+                    ip=0,
+                    verified=0,
+                    contents_count=account.get('contents_count', 0),
+                    friends_count=account.get('friends_count', 0),
+                    followers_count=account.get('followers_count', 0),
+                    platform=platform.value
+                ),
+                photo=account.get('photo', ''),
+                homepage=account.get('homepage', ''),
+                personal_desc=account.get('personal_desc', ''),
+                birthday=account.get('birthday', ''),
+                regis_time=account.get('regis_time', ''),
+                friends=[AccountInfo.Friend(
+                    account_id=f.get('account_id', ''),
+                    account=f.get('account', ''),
+                    homepage=f.get('homepage', '')
+                ) for f in account.get('friends', [])],
+                followers=[AccountInfo.Follower(
+                    account_id=f.get('account_id', ''),
+                    account=f.get('account', ''),
+                    homepage=f.get('homepage', '')
+                ) for f in account.get('followers', [])],
+                influence=0,
+                state=False,
+                retweet_probability=0,
+                retweet_neg_probability=0,
+                retweet_pos_probability=0,
+                user_embeddings=torch.Tensor()
+            ))
         return res
 
     if platform == Platform.Weibo:
         return _load_weibo_data()
     elif platform == Platform.Twitter:
-        raise NotImplementedError("暂不支持Twitter数据加载")
+        raise NotImplementedError('暂不支持Twitter数据加载')
 
 
 def _get_user_feature(data: List[AccountInfo]) -> List[AccountInfo]:
@@ -102,15 +89,6 @@ def _get_user_feature(data: List[AccountInfo]) -> List[AccountInfo]:
             d.user_feature.gender = gender_values.transform([d.gender])[0]
             d.user_feature.ip = ip_values.transform([d.ip])[0]
             d.user_feature.verified = verified_values.transform([d.verified])[0]
-    # 个人简介向量化
-    _text_model = AutoModel.from_pretrained(
-        "jinaai/jina-embeddings-v3", trust_remote_code=True
-    )
-    _text_model = _text_model.to(device)
-    personal_desc_list = [d.personal_desc for d in data]
-    personal_desc_tensor = _text_model.encode(personal_desc_list, task="text-matching")
-    for d in data:
-        d.personal_desc_tensor = personal_desc_tensor[data.index(d)]
     return data
 
 
@@ -119,28 +97,26 @@ def _read_post_data(data_path: str, platform: Platform) -> List[PostInfo]:
         json_content = _read_json_file(data_path)
         if json_content == {}:
             return []
-        posts_info = json_content.get("posts_info", [])
+        posts_info = json_content.get('posts_info', [])
         res: List[PostInfo] = []
         for post in posts_info:
-            res.append(
-                PostInfo(
-                    topic_id=post.get("topic_id", ""),
-                    content=post.get("content", ""),
-                    publish_time=post.get("publish_time", ""),
-                    cnt_retweet=post.get("cnt_retweet", 0),
-                    cnt_agree=post.get("cnt_agree", 0),
-                    cnt_comment=post.get("cnt_comment", 0),
-                    page_picture_pat=post.get("page_picture_pat", None),
-                    cont_languages=post.get("cont_languages", None),
-                    page_action_type=post.get("page_action_type", 0),
-                    nickname=post.get("nickname", ""),
-                    userid=post.get("userid", ""),
-                    url=post.get("url", ""),
-                    relevant_user_id=post.get("relevant_userid", ""),
-                    is_original=post.get("relevant_userid", "") != "",
-                    sentiment=0,
-                )
-            )
+            res.append(PostInfo(
+                topic_id=post.get('topic_id', ''),
+                content=post.get('content', ''),
+                publish_time=post.get('publish_time', ''),
+                cnt_retweet=post.get('cnt_retweet', 0),
+                cnt_agree=post.get('cnt_agree', 0),
+                cnt_comment=post.get('cnt_comment', 0),
+                page_picture_pat=post.get('page_picture_pat', None),
+                cont_languages=post.get('cont_languages', None),
+                page_action_type=post.get('page_action_type', 0),
+                nickname=post.get('nickname', ''),
+                userid=post.get('userid', ''),
+                url=post.get('url', ''),
+                relevant_user_id='',
+                is_original=False,
+                sentiment=0,
+            ))
         return res
 
     if platform == Platform.Weibo:
@@ -148,15 +124,14 @@ def _read_post_data(data_path: str, platform: Platform) -> List[PostInfo]:
 
 
 def _get_post_feature(data: List[PostInfo], batch_size: int) -> List[PostInfo]:
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model_name = "tabularisai/multilingual-sentiment-analysis"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSequenceClassification.from_pretrained(model_name)
     model.to(device)
 
     def predict_sentiment(texts):
-        inputs = tokenizer(
-            texts, return_tensors="pt", truncation=True, padding=True, max_length=512
-        )
+        inputs = tokenizer(texts, return_tensors="pt", truncation=True, padding=True, max_length=512)
         inputs = {key: value.to(device) for key, value in inputs.items()}
         with torch.no_grad():
             outputs = model(**inputs)
@@ -173,16 +148,14 @@ def _get_post_feature(data: List[PostInfo], batch_size: int) -> List[PostInfo]:
         return res
 
     for i in range(0, len(data), batch_size):
-        content_list = [d.content for d in data[i : i + batch_size]]
+        content_list = [d.content for d in data[i:i + batch_size]]
         sentiments = predict_sentiment(content_list)
-        for j in range(len(data[i : i + batch_size])):
+        for j in range(len(data[i:i + batch_size])):
             data[i + j].sentiment = sentiments[j]
     return data
 
 
-def get_user_data(
-    data_path: str, platform: Platform = Platform.Weibo
-) -> List[AccountInfo]:
+def get_user_data(data_path: str, platform: Platform = Platform.Weibo) -> List[AccountInfo]:
     user_data = _read_user_data(data_path, platform)
     user_data = _get_user_feature(user_data)
     FeatureClusterSelector(
@@ -191,14 +164,12 @@ def get_user_data(
         unwanted_cols=[],  # 在此添加不需要的列名
         vis_threshold=0.2,
         color_threshold=0.7,
-        correlation_threshold=0.7,
+        correlation_threshold=0.7
     ).run_all_steps()  # 特征选择
     return user_data
 
 
-def get_post_data(
-    data_path: str, batch_size: int = 1024, platform: Platform = Platform.Weibo
-) -> List[PostInfo]:
+def get_post_data(data_path: str, batch_size: int = 1024, platform: Platform = Platform.Weibo) -> List[PostInfo]:
     """
     获取帖子数据，并提取特征
     Args:
@@ -220,8 +191,8 @@ def get_user_feature(data: List[AccountInfo]) -> List[AccountInfo]:
     return [f.user_feature for f in data]
 
 
-if __name__ == "__main__":
-    DATA_PATH = "data/generate.json"
+if __name__ == '__main__':
+    DATA_PATH = 'data/generate.json'
     postData = get_post_data(DATA_PATH, 1024, Platform.Weibo)
     userData = get_user_data(DATA_PATH, Platform.Weibo)
-    print("数据加载完成")
+    print('数据加载完成')

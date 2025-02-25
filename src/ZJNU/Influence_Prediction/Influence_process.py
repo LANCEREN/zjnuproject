@@ -5,20 +5,20 @@ import networkx as nx
 import numpy as np
 import scipy.sparse as sp
 import torch
-from Influence_Prediction.Attention import AttnTrainer
-from Influence_Prediction.Data_process import (
+from src.ZJNU.Influence_Prediction.Attention import AttnTrainer
+from src.ZJNU.Influence_Prediction.Data_process import (
     DataProcessor,
     FeatureExtractor,
     LabelGenerator,
     NodeEmbedding,
     TimeWindowSplitter,
 )
-from Influence_Prediction.GAT_Training import (
+from src.ZJNU.Influence_Prediction.GAT_Training import (
     GATTrainer_Dynamic1,
     GATTrainer_Dynamic2,
     GATTrainer_Static,
 )
-from Influence_Prediction.MLP_Training import MLPTrainer
+from src.ZJNU.Influence_Prediction.MLP_Training import MLPTrainer
 from torch import dtype
 
 

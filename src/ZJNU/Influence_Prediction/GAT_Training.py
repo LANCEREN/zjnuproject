@@ -6,8 +6,8 @@ import scipy.sparse as sp
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from Influence_Prediction.GAT.models import GAT
-from Influence_Prediction.utils import acc_f1, get_output, split_data
+from src.ZJNU.Influence_Prediction.GAT.models import GAT
+from src.ZJNU.Influence_Prediction.utils import acc_f1, get_output, split_data
 from sklearn.metrics import precision_score, recall_score, roc_auc_score
 
 
@@ -311,7 +311,7 @@ class GATTrainer_Dynamic1(GATTrainer_Static):
                 best_emb = get_output(best_emb)
                 torch.save(
                     self.model.state_dict(),
-                    os.path.join(r"./Influence_Prediction/", "model.pth"),
+                    os.path.join(r"./", "model.pth"),
                 )
                 bad_counter = 0
             else:
@@ -390,7 +390,7 @@ class GATTrainer_Dynamic2(GATTrainer_Static):
             weight_decay=self.args.weight_decay,
         )
         # 加载训练好的模型参数
-        self.model.load_state_dict(torch.load(r"./Influence_Prediction/model.pth"))
+        self.model.load_state_dict(torch.load(r"./model.pth"))
         if self.args.cuda:
             self.model.cuda()
             self.features = self.features.cuda()
