@@ -1,7 +1,7 @@
 import json
 import pickle
 from typing import List
-
+import numpy as np
 # from src.SJTU.Interface import DDQNInterface
 from src.ZJNU.Analog_Propagation.Propagation import simulation
 from src.ZJNU.data_structure import AccountInfo, ICResult, PostInfo
@@ -21,7 +21,7 @@ def main():
     # selected_id_nodes = ["1479040710", "3198471403"]
 
     # 第一组
-    DATA_PATH = "src/ZJNU/Feature_Extract/data/generate.json"
+    DATA_PATH = "data/ZJNU/Feature_Extract/generate.json"
     # 返回账号信息列表
     account_info_list = get_user_data(DATA_PATH)
     # 返回帖子信息列表
@@ -36,7 +36,18 @@ def main():
         account_info_list, post_info_list
     ).predict_influence()
     print("第二组执行完毕")
+    breakpoint()
+    # 将account_info_list写入到JSON文件
+    with open('data/ZJNU/account_info_list.json', 'w', encoding='utf-8') as f:
+        json.dump([account_info.model_dump() for account_info in account_info_list], f, ensure_ascii=False, indent=4,
+                  default=lambda o: int(o) if isinstance(o, (np.int32, np.int64)) else o.__dict__)
 
+    # 将post_info_list写入到JSON文件
+    with open('data/ZJNU/post_info_list.json', 'w', encoding='utf-8') as f:
+        json.dump([post_info.model_dump() for post_info in post_info_list], f, ensure_ascii=False, indent=4,
+                  default=lambda o: int(o) if isinstance(o, (np.int32, np.int64)) else o.__dict__)
+
+    print("数据已成功写入JSON文件")
     def save_account_info(account_info_list, file_path):
         with open(file_path, 'wb') as f:
             pickle.dump(account_info_list, f)
@@ -55,13 +66,15 @@ def main():
     account_info_list = load_account_info('account_info_list.pkl')
     post_info_list = load_account_info('post_info_list.pkl')
     print("账号信息已加载")
+
+#mian
     # 交大
     # budget: int  # 种子节点的数目
     # selected_id_nodes: List[str] 传播策略算法根据GNN_DDQN算法选出来的目标用户ID（节点）列表
     # 修改account_info_list当中AccountInfo对象的state属性
     # selected_id_nodes, account_info_list = DDQNInterface(budget=10, account_info_list=account_info_list,post_info_list=post_info_list).output()
     # 打开并读取种子节点存放的JSON文件
-    with open("src/ZJNU/seed_user_id.json", "r") as file:
+    with open("src/ZJNU/node_features.json", "r") as file:
         selected_id_nodes = json.load(file)
         # 第三组
         # flag:int 1表示正能量增强传播模型结果，2表示负能量抑制传播模型结果，3表示正负能量竞争传播模型结果

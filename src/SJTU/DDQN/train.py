@@ -855,7 +855,7 @@ def train_IMP():
     seed_user_id_str = [
         ddqn_interface.user_dict_reverse[str(user_id)] for user_id in seed_user_id
     ]
-    seed_user_id_path = output / Path("seed_user_id.json")
+    seed_user_id_path = output / Path("node_features.json")
     with open(seed_user_id_path, "w") as file:
         json.dump(seed_user_id_str, file)
     print(f"Seed user IDs saved to: {seed_user_id_path}")
