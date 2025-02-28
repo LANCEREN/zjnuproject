@@ -142,8 +142,7 @@ class FeatureClusterSelector:
             print(f"Deleted {initial_shape[0] - final_shape[0]} rows due to NaN values after conversion.")
 
         # 9. 数据标准化
-        self.norm_variable_numeric_stats_sample = (
-                                                          self.variable_numeric_stats_sample - self.variable_numeric_stats_sample.mean()) / self.variable_numeric_stats_sample.std()
+        self.norm_variable_numeric_stats_sample = (self.variable_numeric_stats_sample - self.variable_numeric_stats_sample.mean()) / self.variable_numeric_stats_sample.std()
         print("Data has been standardized (mean=0, std=1).")
 
         # 10. 清理数据（虽然已经删除了 NaN 和零方差列，但这里保留以防）

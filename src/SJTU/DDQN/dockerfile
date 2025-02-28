@@ -47,6 +47,7 @@ RUN python3 --version
 
 # 复制应用代码
 COPY src/ ./src/
+COPY data/ ./data/
 COPY __main__.py ./__main__.py  
 
 # 设置默认命令
