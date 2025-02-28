@@ -802,7 +802,7 @@ def train_IMP():
     seed_set = set()
 
     # 数据结果输出路径
-    output = dataPath.current_directory / Path("output")
+    output = dataPath.current_directory /  Path("data") / Path("SJTU") / Path("DDQN") / Path("output")
 
     # 下面是从外部api接口接收数据并且调用函数返回
     ddqn_interface = data_process_utils.json_preprocess_zjnu(
